@@ -1,0 +1,39 @@
+spring:
+  application:
+    name: file-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/a-song
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.jdbc.Driver
+  jpa:
+    #指定数据库
+    database: mysql
+    #打印sql
+    show-sql: true
+    hibernate:
+      #开启数据库更新表
+      ddl-auto: update
+      #指定命名策略
+      naming:
+        implicit-strategy: org.hibernate.boot.model.naming.ImplicitNamingStrategyComponentPathImpl
+    properties:
+      hibernate:
+        #Hibernate方言
+        dialect: org.hibernate.dialect.MySQL5Dialect
+server:
+  port: 8081
+eureka:
+  instance:
+    prefer-ip-address: true #注册服务使用服务的ip地址
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka
+fdfs:
+  soTimeout: 1500
+  connectTimeout: 600
+  thumbImage:             #缩略图生成参数
+    width: 150
+    height: 150
+  trackerList:            #TrackerList参数,支持多个
+    - 47.100.121.59:22122
