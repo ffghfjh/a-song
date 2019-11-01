@@ -1,4 +1,6 @@
 package com.fangzhou.asong.service.impl;
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONException;
 import com.alibaba.fastjson.JSONObject;
 import com.fangzhou.asong.dao.AuthorDao;
 import com.fangzhou.asong.dao.ProductDao;
@@ -9,19 +11,20 @@ import com.fangzhou.asong.pojo.User;
 import com.fangzhou.asong.service.FileService;
 import com.fangzhou.asong.service.RedisService;
 import com.fangzhou.asong.service.UserService;
-import com.fangzhou.asong.util.HttpUtil;
-import com.fangzhou.asong.util.JwtTokenUtil;
-import com.fangzhou.asong.util.Result;
-import com.fangzhou.asong.util.ResultCode;
+import com.fangzhou.asong.util.*;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,7 +37,7 @@ public class UserServiceImpl implements UserService {
     RestTemplate restTemplate;
 
     @Autowired
-    StringRedisTemplate redisTemplate;
+    RedisTemplate redisTemplate;
     @Autowired
     StringRedisTemplate stringRedisTemplate;
 
@@ -60,7 +63,9 @@ public class UserServiceImpl implements UserService {
     String secret;
 
     @Override
-    public Result login(String code) {
+    public Result login(String code,String signature,String encryptedData,String iv) {
+
+
 
         Result result = new Result();
 
@@ -74,15 +79,15 @@ public class UserServiceImpl implements UserService {
         String context = null;
         switch (errcode) {
             case 0:
-                String openid = jsonObject.getString("openid");
-                String session_key = jsonObject.getString("session_key");
+                String openId = jsonObject.getString("openid");
+                String sessionKey = jsonObject.getString("session_key");
                 result.setCode(1);
                 result.setMsg("成功");
                 String token = JwtTokenUtil.createJWT(604800000);
 
                 Map<String, Object> map = new HashMap<>();
                 map.put("token", token);
-                User user = userDao.findUserByOpenid(openid);
+                User user = userDao.findUserByOpenid(openId);
 
                 /**
                  * 判断是否存在该用户
@@ -90,16 +95,47 @@ public class UserServiceImpl implements UserService {
                 if (user != null) {
                     map.put("userId", user.getId());
                     //关联token和微信openid和session_key
-                    redisTemplate.opsForValue().set(token, openid + "-" + session_key+"-"+user.getId());
-                } else {
-                    User newUser = new User();
-                    Date date = new Date();
-                    newUser.setCreateTime(date);
-                    newUser.setUpdateTime(date);
-                    newUser.setOpenid(openid);
-                    User user1 = userDao.save(newUser);
-                    map.put("userId", user.getId());
-                    redisTemplate.opsForValue().set(token, openid + "-" + session_key+"-"+user.getId());
+                    redisTemplate.opsForValue().set(token, openId + "-" + sessionKey+"-"+user.getId());
+                }
+                //新用户
+                else {
+
+                    WXBizDataCrypt crypt = new WXBizDataCrypt(appid,sessionKey);
+                    String userInfo = crypt.decryptData(encryptedData,iv);
+
+                    //非法密文
+                    if(userInfo.equals(WXBizDataCrypt.illegalBuffer)){
+                        return Result.failure(ResultCode.FAILURE);
+                    }
+
+                    try{
+                        JSONObject info = JSON.parseObject(userInfo);
+                        String nickName = info.getString("nickName");
+                        int gender = info.getInteger("gender");
+                        String city = info.getString("city");
+                        String province = info.getString("province");
+                        String header = info.getString("avatarUrl");
+
+                        User newUser = new User();
+                        Date date = new Date();
+                        if(gender==0||gender==1){
+                            newUser.setMan(true);
+                        }else {
+                            newUser.setMan(false);
+                        }
+                        newUser.setName(nickName);
+                        newUser.setCity(city);
+                        newUser.setProvince(province);
+                        newUser.setHeader(header);
+                        newUser.setCreateTime(date);
+                        newUser.setUpdateTime(date);
+                        newUser.setOpenid(openId);
+                        User user1 = userDao.save(newUser);
+                        map.put("userId", user1.getId());
+                        redisTemplate.opsForValue().set(token, openId + "-" + sessionKey+"-"+user1.getId());
+                    }catch (JSONException e){
+                        e.printStackTrace();
+                    }
                 }
                 result.setData(map);
                 break;
@@ -199,6 +235,8 @@ public class UserServiceImpl implements UserService {
                         product.setUpdateTime(date);
                         Product product1 = productDao.save(product);
                         redisService.addProduct(product1.getId());
+                        //设置文章点赞数为0
+                        redisTemplate.opsForValue().set("post_"+product1.getId()+"_"+"counter",0);
                         return Result.success();
                     }
                     result = Result.failure(ResultCode.FAILURE);

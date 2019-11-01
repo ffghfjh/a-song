@@ -35,8 +35,8 @@ public class UserController {
 
 
     @GetMapping("/login")
-    public Result login(String code){
-       return userService.login(code);
+    public Result login(String code,String signature,String encryptedData,String iv){
+       return userService.login(code,signature,encryptedData,iv);
     }
 
     @PostMapping("/reqAuthor")

@@ -15,7 +15,7 @@ public interface UserService {
      * @return
      */
     @Transactional
-    Result login(String code);
+    Result login(String code,String signature,String encryptedData,String iv);
 
     @Transactional
     Result AuthorRequest(String name, String idCard, String referrals, String province,

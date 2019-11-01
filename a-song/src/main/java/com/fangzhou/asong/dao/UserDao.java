@@ -6,4 +6,6 @@ import org.springframework.data.repository.CrudRepository;
 
 public interface UserDao extends CrudRepository<User,Long> {
     User findUserByOpenid(String openId);
+
+    User findUserById(Long userId);
 }

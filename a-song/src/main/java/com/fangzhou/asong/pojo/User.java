@@ -5,6 +5,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import java.util.Date;
 
+/**
+ * 用户
+ */
 @Entity
 public class User {
 
