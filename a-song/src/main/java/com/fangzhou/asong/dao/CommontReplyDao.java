@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface CommontReplyDao extends CrudRepository<ProComReply,Long> {
     List<ProComReply> findProComRepliesByReplyForIdAndReplyForType(Long forId,int type);
+
+    ProComReply findProComReplyById(Long reId);
 }

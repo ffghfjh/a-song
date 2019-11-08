@@ -1,8 +1,7 @@
 package com.fangzhou.asong.util;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -20,6 +19,8 @@ import org.apache.http.util.EntityUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import javax.swing.text.html.HTMLDocument;
+import javax.swing.text.html.parser.Entity;
 
 
 public class HttpUtil {
@@ -74,6 +75,30 @@ public class HttpUtil {
         return null;
     }
 
+    public static JSONObject postToJSONObject(String URL, SortedMap<Object,Object> parameters){
+        post = new HttpPost(URL);
+        objectmapper = new ObjectMapper();
+        HttpEntity entity;
+        try {
+            entity = new StringEntity(objectmapper.writeValueAsString(parameters));
+            post.setEntity(entity);
+            client = HttpClients.createDefault();
+            response = client.execute(post);
+            HttpEntity repentity = response.getEntity();
+            String resresult = EntityUtils.toString(repentity);
+            JSONObject object = JSON.parseObject(resresult);
+            return object;
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        } catch (JsonProcessingException e) {
+            e.printStackTrace();
+        } catch (ClientProtocolException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
     /**
      * get请求
      * @param URL 请求地址

@@ -2,7 +2,7 @@ spring:
   application:
     name: file-service
   datasource:
-    url: jdbc:mysql://192.168.128.130:3306/a-song?serverTimezone=GMT%2B8&useUnicode=true&characterEncoding=utf-8
+    url: jdbc:mysql://192.168.5.108:3306/a-song?serverTimezone=GMT%2B8&useUnicode=true&characterEncoding=utf-8
     #url jdbc:mysql://192.168.:3306/a-song?serverTimezone=GMT%2B8&useUnicode=true&characterEncoding=utf-8
     username: root
     password: 123456
@@ -25,7 +25,7 @@ spring:
   #redis
   redis:
     #redis机器ip
-    hostname: 192.168.128.130
+    hostname: 192.168.5.108
     #redis端口
     port: 6379
     #redis密码
@@ -50,7 +50,7 @@ spring:
     testOnBorrow: true
     #在空闲时检查有效性, 默认false
     testWhileIdle: true
-    host: 192.168.128.130
+    host: 192.168.5.108
 
 
   #redis集群配置
@@ -65,4 +65,4 @@ fdfs:
     width: 150
     height: 150
   trackerList:            #TrackerList参数,支持多个
-    - 192.168.128.130:22122
+    - 192.168.5.108:22122

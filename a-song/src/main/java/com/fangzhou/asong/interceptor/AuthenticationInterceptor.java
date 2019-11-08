@@ -24,11 +24,14 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 
-        String token = request.getHeader("token");
         // 如果不是映射到方法直接通过
         if(!(handler instanceof HandlerMethod)){
             return true;
         }
+
+
+        String token = request.getHeader("token");
+        logger.info("进入"+token);
 
         HandlerMethod handlerMethod = (HandlerMethod) handler;
         Method method =  handlerMethod.getMethod();
@@ -79,4 +82,6 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
                                 HttpServletResponse httpServletResponse,
                                 Object o, Exception e) throws Exception {
     }
+
+
 }

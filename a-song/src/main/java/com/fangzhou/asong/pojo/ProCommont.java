@@ -4,22 +4,32 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import java.io.Serializable;
 import java.util.Date;
 
 /**
  * 评论
  */
 @Entity
-public class ProCommont {
+public class ProCommont implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
     private Long proId;//作品Id
     private Long userId;//用户Id
     private String context;//评论内容
-    private Date CreateTime;//创建时间
+    private Date createTime;//创建时间
     private Date UpdateTime;//更新时间
 
+    private int goodNum;//点赞量
+
+    public int getGoodNum() {
+        return goodNum;
+    }
+
+    public void setGoodNum(int goodNum) {
+        this.goodNum = goodNum;
+    }
 
     public Long getId() {
         return id;
@@ -54,11 +64,11 @@ public class ProCommont {
     }
 
     public Date getCreateTime() {
-        return CreateTime;
+        return createTime;
     }
 
     public void setCreateTime(Date createTime) {
-        CreateTime = createTime;
+        this.createTime = createTime;
     }
 
     public Date getUpdateTime() {
@@ -68,4 +78,5 @@ public class ProCommont {
     public void setUpdateTime(Date updateTime) {
         UpdateTime = updateTime;
     }
+
 }

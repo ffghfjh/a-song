@@ -1,16 +1,19 @@
 package com.fangzhou.asong.pojo;
 
+import org.springframework.cache.annotation.CacheConfig;
+
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import java.io.Serializable;
 import java.util.Date;
 
 /**
  * 作品类型
  */
 @Entity
-public class ProductionType {
+public class ProductionType implements Serializable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

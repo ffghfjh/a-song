@@ -1,17 +1,12 @@
 package com.fangzhou.asong.service.impl;
 
-import com.fangzhou.asong.dao.CommontDao;
-import com.fangzhou.asong.dao.CommontReplyDao;
-import com.fangzhou.asong.dao.ProductDao;
-import com.fangzhou.asong.dao.UserDao;
-import com.fangzhou.asong.pojo.ProComReply;
-import com.fangzhou.asong.pojo.ProCommont;
-import com.fangzhou.asong.pojo.Product;
-import com.fangzhou.asong.pojo.User;
+import com.fangzhou.asong.dao.*;
+import com.fangzhou.asong.pojo.*;
 import com.fangzhou.asong.service.ProducterService;
 import com.fangzhou.asong.service.RedisService;
 import com.fangzhou.asong.util.Result;
 import com.fangzhou.asong.util.ResultCode;
+import net.bytebuddy.asm.Advice;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,45 +33,72 @@ public class ProducterServiceImpl implements ProducterService {
     CommontReplyDao replyDao;
     @Autowired
     UserDao userDao;
+    @Autowired
+    AuthorDao authorDao;
+    @Autowired
+    ASongOrderDao orderDao;
+    @Autowired
+    ProGoodDao proGoodDao;
+    @Autowired
+    CommontGoodDao commontGoodDao;
+    @Autowired
+    ReplyGoodDao replyGoodDao;
+    @Autowired
+    OwnProducterDao ownProducterDao;
+    @Autowired
+    PlayDao playDao;
+    @Autowired
+    ShareDao shareDao;
+    @Autowired
+    NoticeDao noticeDao;
 
+
+
+    @Autowired
+    ProGoodDao goodDao;
     @Override
     public Result proGood(Long proId, String token) {
         String str = stringRedisTemplate.opsForValue().get(token);
-        int userId = Integer.parseInt(redisService.getUserId(str));
-        //文章当前的点赞数
-        int goodNum = (int) redisTemplate.opsForValue().get("post_" + proId + "_" + "counter");
-        //获取用户对当前文章的点赞状态
-        Boolean good = (Boolean) redisTemplate.opsForHash().get("post_like_" + proId + "_" + userId, "state");
-        //没有点过赞
-        if (good == null) {
-            logger.info("用户：" + userId + "没有对文章：" + proId + "点过赞");
-            //存放作品id到作品set中
-            redisTemplate.opsForSet().add("post_set", proId);
-            //存放userID到作品点赞set中
-            redisTemplate.opsForSet().add("post_user_like_set_" + proId, userId);
-            redisTemplate.opsForValue().set("post_" + proId + "_" + "counter", goodNum + 1);
-            //储存作品的点赞情况到文章点赞有序集合上
-            redisTemplate.opsForZSet().add("post_good_rank", proId, goodNum + 1);
-            redisTemplate.opsForHash().put("post_like_" + proId + "_" + userId, "state", true);
-        } else {
-            logger.info("用户：" + userId + "对文章：" + proId + "点过赞");
-            //取消赞状态
-            if (!good) {
-                logger.info("用户：" + userId + "对文章：" + proId + "点赞");
-                //增加点赞数
-                redisTemplate.opsForValue().set("post_" + proId + "_" + "counter", goodNum + 1);
-                //储存作品的点赞情况到文章点赞有序集合上
-                redisTemplate.opsForZSet().add("post_good_rank", proId, goodNum + 1);
-                //更改点赞状态
-                redisTemplate.opsForHash().put("post_like_" + proId + "_" + userId, "state", true);
-            } else {
-                logger.info("用户：" + userId + "对文章：" + proId + "取消点赞");
-                //减少点赞数
-                redisTemplate.opsForValue().set("post_" + proId + "_" + "counter", goodNum - 1);
-                //储存作品的点赞情况到文章点赞有序集合上
-                redisTemplate.opsForZSet().add("post_good_rank", proId, goodNum - 1);
-                //更改点赞状态
-                redisTemplate.opsForHash().put("post_like_" + proId + "_" + userId, "state", false);
+        if (str != null && !str.equals("")) {
+            Long userId = Long.parseLong(redisService.getUserId(str));
+            //查询用户对文章的点赞
+            ProGood proGood = proGoodDao.findProGoodByProIdAndUserId(proId, userId);
+            //没有点过赞
+            if (proGood == null) {
+                Date date = new Date();
+                ProGood good = new ProGood();
+                //点赞态
+                good.setState(1);
+                good.setUserId(userId);
+                good.setProId(proId);
+                good.setCreateTime(date);
+                good.setUpdateTime(date);
+                proGoodDao.save(good);
+                //添加点赞量到作品表
+                logger.info("proId"+proId);
+                Product product = productDao.findProductById(proId);
+                product.setGoodNum(product.getGoodNum() + 1);
+                productDao.save(product);
+            }
+            //点过赞
+            else {
+                Product product = productDao.findProductById(proGood.getProId());
+                //取消点赞态
+                if (proGood.getState() == 0) {
+                    //添加点赞量
+                    product.setGoodNum(product.getGoodNum() + 1);
+                    //改变点赞态
+                    proGood.setState(1);
+                    proGoodDao.save(proGood);
+                }
+                //点赞态
+                else {
+                    //添加点赞量
+                    product.setGoodNum(product.getGoodNum() - 1);
+                    //改变点赞态
+                    proGood.setState(0);
+                    proGoodDao.save(proGood);
+                }
             }
         }
         return Result.success();
@@ -86,6 +108,12 @@ public class ProducterServiceImpl implements ProducterService {
     public Result proCommont(Long proId, String context, String token) {
         String str = stringRedisTemplate.opsForValue().get(token);
         if (str != null && !str.equals("")) {
+            Product pro = productDao.findProductById(proId);
+            if(pro==null){
+                Result result = Result.failure(ResultCode.FAILURE);
+                result.setMsg("没有查询到该作品");
+                return result;
+            }
             Long userId = Long.parseLong(redisService.getUserId(str));
             ProCommont commont = new ProCommont();
             Date date = new Date();
@@ -94,11 +122,11 @@ public class ProducterServiceImpl implements ProducterService {
             commont.setContext(context);
             commont.setCreateTime(date);
             commont.setUpdateTime(date);
+            commont.setGoodNum(0);
             ProCommont commont1 = commontDao.save(commont);
-            //存放评论ID到评论set集合中
-            redisTemplate.opsForSet().add("commont_set", commont1.getId());
-            //设置该评论赞数为0
-            redisTemplate.opsForValue().set("commont_" + commont1.getId() + "_" + "counter", 0);
+            //添加评论量
+            pro.setComNum(pro.getComNum() + 1);
+            productDao.save(pro);
             return Result.success();
         }
         return Result.failure(ResultCode.FAILURE);
@@ -117,6 +145,7 @@ public class ProducterServiceImpl implements ProducterService {
             reply.setUserId(userId);
             reply.setCreateTime(date);
             reply.setUpdateTime(date);
+            reply.setGoodNum(0);
             ProComReply reply1 = replyDao.save(reply);
             redisTemplate.opsForSet().add("reply_set", reply1.getId());//存放该评论到
             //设置该回复赞数为0
@@ -131,31 +160,35 @@ public class ProducterServiceImpl implements ProducterService {
         String str = stringRedisTemplate.opsForValue().get(token);
         if (str != null && !str.equals("")) {
             Long userId = Long.parseLong(redisService.getUserId(str));
-            int goodNum = (int) redisTemplate.opsForValue().get("commont_" + commId + "_" + "counter");
-            //查询该用户是否对该评论点过赞
-            Boolean good = (Boolean) redisTemplate.opsForHash().get("commont_like_" + commId + "_" + userId, "state");
+            CommontGood commontGood = commontGoodDao.findCommontGoodByComIdAndUserId(commId, userId);
+
             //没有点过赞
-            if (good == null) {
-                //设置点赞数为1
-                redisTemplate.opsForValue().set("commont_" + commId + "_" + "counter", 1);
-                //设置状态为点赞态
-                redisTemplate.opsForHash().put("commont_like_" + commId + "_" + userId, "state", true);
+            if (commontGood == null) {
+                ProCommont commont = commontDao.findProCommontById(commId);
+                commont.setGoodNum(commont.getGoodNum() + 1);
+                Date date = new Date();
+                CommontGood good = new CommontGood();
+                good.setComId(commId);
+                good.setState(1);
+                good.setUserId(userId);
+                good.setCreateTime(date);
+                good.setUpdateTime(date);
+                commontGoodDao.save(good);
             }
             //点过赞
             else {
+                ProCommont commont = commontDao.findProCommontById(commId);
                 //取消点赞态
-                if (!good) {
-                    //设置点赞数加1
-                    redisTemplate.opsForValue().set("commont_" + commId + "_" + "counter", goodNum + 1);
-                    //设置状态为点赞态
-                    redisTemplate.opsForHash().put("commont_like_" + commId + "_" + userId, "state", true);
+                if (commontGood.getState() == 0) {
+                    commont.setGoodNum(commont.getGoodNum() + 1);
+                    commontGood.setState(1);
+                    commontGoodDao.save(commontGood);
                 }
                 //点赞态
                 else {
-                    //设置点赞数减1
-                    redisTemplate.opsForValue().set("commont_" + commId + "_" + "counter", goodNum - 1);
-                    //设置状态为取消点赞态
-                    redisTemplate.opsForHash().put("commont_like_" + commId + "_" + userId, "state", false);
+                    commont.setGoodNum(commont.getGoodNum() - 1);
+                    commontGood.setState(0);
+                    commontGoodDao.save(commontGood);
                 }
             }
         }
@@ -166,27 +199,30 @@ public class ProducterServiceImpl implements ProducterService {
     public Result replyGood(Long replyId, String token) {
         String str = stringRedisTemplate.opsForValue().get(token);
         if (str != null && !str.equals("")) {
-            Long userId = Long.parseLong(redisService.getUserId(str));
-            //获取当前点赞数
-            int goodNum = (int) redisTemplate.opsForValue().get("reply" + replyId + "_" + "counter");
-            //查询点赞状态
-            Boolean good = (Boolean) redisTemplate.opsForHash().get("reply_like_" + replyId + "_" + userId, "state");
-            //没有点过赞
-            if (good == null) {
-                redisTemplate.opsForValue().set("reply" + replyId + "_" + "counter", 1);
-                redisTemplate.opsForHash().put("reply_like_" + replyId + "_" + userId, "state", true);
-            }
-            //点过赞
-            else {
-                //取消点赞态
-                if (!good) {
-                    redisTemplate.opsForValue().set("reply" + replyId + "_" + "counter", goodNum + 1);
-                    redisTemplate.opsForHash().put("reply_like_" + replyId + "_" + userId, "state", true);
-                }
-                //点赞态
-                else {
-                    redisTemplate.opsForValue().set("reply" + replyId + "_" + "counter", goodNum - 1);
-                    redisTemplate.opsForHash().put("reply_like_" + replyId + "_" + userId, "state", false);
+            ProComReply reply = replyDao.findProComReplyById(replyId);
+            if (reply != null) {
+                Long userId = Long.parseLong(redisService.getUserId(str));
+                ReplyGood replyGood = replyGoodDao.findReplyGoodByRepIdAndUserId(replyId, userId);
+                if (replyGood == null) {
+                    ReplyGood good = new ReplyGood();
+                    Date date = new Date();
+                    good.setRepId(replyId);
+                    good.setUserId(userId);
+                    good.setState(1);
+                    good.setCreateTime(date);
+                    good.setUpdateTime(date);
+                    replyGoodDao.save(good);
+                    reply.setGoodNum(reply.getGoodNum() + 1);
+                } else {
+                    if (replyGood.getState() == 0) {
+                        reply.setGoodNum(reply.getGoodNum() + 1);
+                        replyGood.setState(1);
+                        replyGoodDao.save(replyGood);
+                    } else {
+                        reply.setGoodNum(reply.getGoodNum() - 1);
+                        replyGood.setState(0);
+                        replyGoodDao.save(replyGood);
+                    }
                 }
             }
         }
@@ -204,25 +240,27 @@ public class ProducterServiceImpl implements ProducterService {
                 //评论的用户
                 User user = userDao.findUserById(commont.getUserId());
                 //评论点赞数
-                int goodNum = (int) redisTemplate.opsForValue().get("commont_" + commont.getId() + "_" + "counter");
+                List<CommontGood> goods = commontGoodDao.findCommontGoodsByComId(commont.getId());
+                if(goods!=null){
+                    map.put("good", goods.size());
+                }else {
+                    map.put("good", 0);
+                }
                 map.put("userId", user.getId());
                 map.put("header", user.getHeader());
                 map.put("context", commont.getContext());
-                map.put("good", goodNum);
+
                 List<Map<String, Object>> allReplys = new ArrayList<>();
                 //评论的回复
                 List<ProComReply> replies = replyDao.findProComRepliesByReplyForIdAndReplyForType(commont.getId(), 1);
                 if (replies != null && replies.size() > 0) {
                     for (ProComReply reply : replies) {
-                        //回复的用户
-                        User user1 = userDao.findUserById(reply.getUserId());
                         //回复的点赞数
-                        int goodNum1 = (int) redisTemplate.opsForValue().get("reply_" + reply.getId() + "_" + "counter");
                         Map<String, Object> map1 = new HashMap<>();
                         map1.put("userId", user.getId());
                         map1.put("header", user.getHeader());
                         map1.put("context", reply.getContext());
-                        map1.put("good", goodNum1);
+                        map1.put("good", reply.getGoodNum());
                         allReplys.add(map1);
                     }
                 }
@@ -238,7 +276,83 @@ public class ProducterServiceImpl implements ProducterService {
     }
 
     @Override
-    public Result getProduct() {
+    public Result getHotProduct(int count) {
+        List<Object> list = new ArrayList<>();
+        //获取热门作品
+        List<Product> products = productDao.findAllByOrderByPayNumAsc();
+        if (products != null) {
+            if (products.size() > count) {
+                for (int i = 0; i < count; i++) {
+                    Product pro = products.get(i);
+                    Author author = authorDao.findAuthorById(pro.getAuthorId());
+                    User user = userDao.findUserById(author.getUserId());
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("userId", user.getId());
+                    map.put("uname", user.getName());
+                    map.put("productId", pro.getId());
+                    map.put("authorId", author.getId());
+                    map.put("header", user.getHeader());
+                    map.put("title", pro.getTitle());
+                    map.put("time", pro.getTime());
+                    map.put("date", pro.getCreateTime());
+                    map.put("url", pro.getProUrl());
+                    map.put("commontSize", pro.getComNum());
+                    map.put("play", pro.getPlayNum());
+                    map.put("good", pro.getGoodNum());
+                    //查询用户是否购买过该作品
+                    ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+pro.getId()+"-%", user.getId(), 1);
+                    if (order != null) {
+                        map.put("state", 1);
+                    } else {
+                        map.put("state", 0);
+                    }
+                    List<ASongOrder> orders = orderDao.findASongOrdersByProductIdLikeAndState("%-"+pro.getId()+"-%",1);
+                    if(orders==null){
+                        map.put("payNum",0);
+                    }else {
+                        map.put("payNum",orders.size());
+                    }
+                    list.add(map);
+                }
+            } else {
+                for (int i = 0; i < products.size(); i++) {
+                    Product pro = products.get(i);
+                    Author author = authorDao.findAuthorById(pro.getAuthorId());
+                    User user = userDao.findUserById(author.getUserId());
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("userId", user.getId());
+                    map.put("productId", pro.getId());
+                    map.put("authorId", author.getId());
+                    map.put("header", user.getHeader());
+                    map.put("title", pro.getTitle());
+                    map.put("time", pro.getTime());
+                    map.put("date", pro.getCreateTime());
+                    map.put("url", pro.getProUrl());
+                    map.put("commontSize", pro.getComNum());
+                    map.put("play", pro.getPlayNum());
+                    map.put("good", pro.getGoodNum());
+                    //查询用户是否购买过该作品
+                    ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+pro.getId()+"-%", user.getId(), 1);
+                    if (order != null) {
+                        map.put("state", 1);
+                    } else {
+                        map.put("state", 0);
+                    }
+                    List<ASongOrder> orders = orderDao.findASongOrdersByProductIdLikeAndState("%-"+pro.getId()+"-%",1);
+                    if(orders==null){
+                        map.put("payNum",0);
+                    }else {
+                        map.put("payNum",orders.size());
+                    }
+                    list.add(map);
+                }
+            }
+        }
+        return Result.success(list);
+    }
+
+    @Override
+    public Result getHotProductsByType(int count) {
         Result result;
         List<Object> list = new ArrayList<>();
         //查出点赞排行前20的作品id
@@ -246,9 +360,519 @@ public class ProducterServiceImpl implements ProducterService {
         if (pros != null && pros.size() > 0) {
             for (Long proId : pros) {
                 Product pro = productDao.findProductById(proId);
-                list.add(pro);
+                Author author = authorDao.findAuthorById(pro.getAuthorId());
+                User user = userDao.findUserById(author.getUserId());
+                Map<String, Object> map = new HashMap<>();
+                map.put("userId", user.getId());
+                map.put("productId", pro.getId());
+                map.put("authorId", author.getId());
+                map.put("header", user.getHeader());
+                map.put("title", pro.getTitle());
+                map.put("time", pro.getTime());
+                map.put("date", pro.getCreateTime());
+                map.put("url", pro.getProUrl());
+                List<ProCommont> commonts = commontDao.findProCommontsByProId(pro.getId());
+                //评论数
+                if (null != commonts && commonts.size() > 0) {
+                    map.put("commontSize", commonts.size());
+                } else {
+                    map.put("commontSize", 0);
+                }
+                //播放量
+                int play = (int) redisTemplate.opsForValue().get("post_play_" + pro.getId() + "_counter");
+                map.put("play", play);
+                //作品当前的点赞数
+                int goodNum = (int) redisTemplate.opsForValue().get("post_" + proId + "_" + "counter");
+                map.put("good", goodNum);
+                //查询用户是否购买过该作品
+                ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+pro.getId()+"-%", user.getId(), 1);
+                if (order != null) {
+                    map.put("state", 1);
+                } else {
+                    map.put("state", 0);
+                }
+                list.add(map);
             }
         }
         return Result.success(list);
+    }
+
+    @Override
+    public Result getMyGoodProduct(String token) {
+        List<Object> list = new ArrayList<>();
+        String str = stringRedisTemplate.opsForValue().get(token);
+        if (null != str && !str.equals("")) {
+            Long userId = Long.parseLong(redisService.getUserId(str));
+            //查询我所有点赞的作品
+            List<ProGood> goods = proGoodDao.findProGoodsByUserIdAndState(userId, 1);
+            for (ProGood good : goods) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("proId", good.getProId());
+                Product product = productDao.findProductById(good.getProId());
+                Author author = authorDao.findAuthorById(product.getAuthorId());
+                User user = userDao.findUserById(author.getUserId());
+                map.put("authorId", product.getAuthorId());
+                map.put("userId", user.getId());
+                map.put("productId",product.getId());
+                map.put("header", user.getHeader());
+                map.put("title", product.getTime());
+                map.put("time", product.getTime());
+                map.put("url", product.getProUrl());
+                map.put("date", product.getCreateTime());
+                map.put("commontSize", product.getPlayNum());
+                map.put("good", product.getGoodNum());
+                map.put("play", product.getPlayNum());
+                map.put("download", product.getDownNum());
+                ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+product.getId()+"-%", user.getId(), 1);
+                if (order != null) {
+                    map.put("state", 1);
+                } else {
+                    map.put("state", 0);
+                }
+                List<ASongOrder> orders = orderDao.findASongOrdersByProductIdLikeAndState("%-"+product.getId()+"-%",1);
+                if(orders==null){
+                    map.put("payNum",0);
+                }else {
+                    map.put("payNum",orders.size());
+                }
+                list.add(map);
+            }
+        }
+        return Result.success(list);
+    }
+
+    @Override
+    public Result getLatestProduct(int count) {
+        List<Object> list = new ArrayList<>();
+        List<Product> products = productDao.findAllByOrderByCreateTimeAsc();
+        if(products!=null&&products.size()>0){
+            if(products.size()>count){
+                for(int i=0;i<count;i++){
+                    Product product = products.get(i);
+                    Author author = authorDao.findAuthorById(product.getAuthorId());
+                    User user = userDao.findUserById(author.getUserId());
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("authorId", product.getAuthorId());
+                    map.put("userId", user.getId());
+                    map.put("productId",product.getId());
+                    map.put("uname", user.getName());
+                    map.put("header", user.getHeader());
+                    map.put("title", product.getTitle());
+                    map.put("time", product.getTime());
+                    map.put("url", product.getProUrl());
+                    map.put("date", product.getCreateTime());
+                    map.put("commontSize", product.getPlayNum());
+                    map.put("good", product.getGoodNum());
+                    map.put("play", product.getPlayNum());
+                    map.put("download", product.getDownNum());
+                    ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+product.getId()+"-%", user.getId(), 1);
+                    if (order != null) {
+                        map.put("state", 1);
+                    } else {
+                        map.put("state", 0);
+                    }
+                    List<ASongOrder> orders = orderDao.findASongOrdersByProductIdLikeAndState("%-"+product.getId()+"-%",1);
+                    if(orders==null){
+                        map.put("payNum",0);
+                    }else {
+                        map.put("payNum",orders.size());
+                    }
+                    list.add(map);
+                }
+            }else{
+                for(int i=0;i<products.size();i++){
+                    Product product = products.get(i);
+                    Author author = authorDao.findAuthorById(product.getAuthorId());
+                    User user = userDao.findUserById(author.getUserId());
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("authorId", product.getAuthorId());
+                    map.put("userId", user.getId());
+                    map.put("uname", user.getName());
+                    map.put("header", user.getHeader());
+                    map.put("title", product.getTitle());
+                    map.put("time", product.getTime());
+                    map.put("productId",product.getId());
+                    map.put("url", product.getProUrl());
+                    map.put("date", product.getCreateTime());
+                    map.put("commontSize", product.getPlayNum());
+                    map.put("good", product.getGoodNum());
+                    map.put("play", product.getPlayNum());
+                    map.put("download", product.getDownNum());
+                    ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+product.getId()+"-%", user.getId(), 1);
+                    if (order != null) {
+                        map.put("state", 1);
+                    } else {
+                        map.put("state", 0);
+                    }
+                    List<ASongOrder> orders = orderDao.findASongOrdersByProductIdLikeAndState("%-"+product.getId()+"-%",1);
+                    if(orders==null){
+                        map.put("payNum",0);
+                    }else {
+                        map.put("payNum",orders.size());
+                    }
+                    list.add(map);
+                }
+            }
+        }
+        return Result.success(list);
+    }
+
+    @Override
+    public Result getAuthors() {
+        List<Object> objs = new ArrayList<>();
+        //获取审核通过的作者
+        List<Author> authors = authorDao.findAuthorsByState(1);
+        if (authors != null && authors.size() > 0) {
+            if (authors.size() > 6) {
+                for (int i = 0; i < 6; i++) {
+                    Map<String, Object> map = new HashMap<>();
+                    Author author = authors.get(i);
+                    User user = userDao.findUserById(author.getUserId());
+                    map.put("userId", user.getId());
+                    map.put("authorId", author.getId());
+                    map.put("name", user.getName());
+                    map.put("header", user.getHeader());
+                    objs.add(map);
+                }
+            } else {
+                for (int i = 0; i < authors.size(); i++) {
+                    Map<String, Object> map = new HashMap<>();
+                    Author author = authors.get(i);
+                    User user = userDao.findUserById(author.getUserId());
+                    map.put("userId", user.getId());
+                    map.put("authorId", author.getId());
+                    map.put("name", user.getName());
+                    map.put("header", user.getHeader());
+                    objs.add(map);
+                }
+            }
+        }
+        return Result.success(objs);
+    }
+
+    @Override
+    public Result getProducts(int count) {
+        List<Object> list = new ArrayList<>();
+        //获取推荐作品并升序排序
+        List<Product> all = productDao.findProductsByRecommendOrderByPayNum(true);
+        if (all != null && all.size() > 0) {
+            if (all.size() > count) {
+                for (int i = 0; i < count; i++) {
+                    Author author = authorDao.findAuthorById(all.get(i).getAuthorId());
+                    User user = userDao.findUserById(author.getUserId());
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("authorId", all.get(i).getAuthorId());
+                    map.put("userId", user.getId());
+                    map.put("uname", user.getName());
+                    map.put("header", user.getHeader());
+                    map.put("title", all.get(i).getTitle());
+                    map.put("time", all.get(i).getTime());
+                    map.put("date", all.get(i).getCreateTime());
+                    map.put("url", all.get(i).getProUrl());
+                    map.put("download", all.get(i).getDownNum());
+                    map.put("play", all.get(i).getPlayNum());
+                    map.put("commontSize", all.get(i).getComNum());
+                    map.put("good", all.get(i).getGoodNum());
+                    map.put("productId",all.get(i).getId());
+                    //查询用户是否购买过该作品
+                    ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+all.get(i).getId()+"-%", user.getId(), 1);
+                    if (order != null) {
+                        map.put("state", 1);
+                    } else {
+                        map.put("state", 0);
+                    }
+                    List<ASongOrder> orders = orderDao.findASongOrdersByProductIdLikeAndState("%-"+all.get(i).getId()+"-%",1);
+                    if(orders==null){
+                        map.put("payNum",0);
+                    }else {
+                        map.put("payNum",orders.size());
+                    }
+                    list.add(map);
+                }
+            } else {
+                for (int i = 0; i < all.size(); i++) {
+                    Author author = authorDao.findAuthorById(all.get(i).getAuthorId());
+                    User user = userDao.findUserById(author.getUserId());
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("authorId", all.get(i).getAuthorId());
+                    map.put("userId", user.getId());
+                    map.put("header", user.getHeader());
+                    map.put("title", all.get(i).getTime());
+                    map.put("time", all.get(i).getTime());
+                    map.put("date", all.get(i).getCreateTime());
+                    map.put("url", all.get(i).getProUrl());
+                    map.put("download", all.get(i).getDownNum());
+                    map.put("play", all.get(i).getPlayNum());
+                    map.put("commontSize", all.get(i).getComNum());
+                    map.put("good", all.get(i).getGoodNum());
+                    map.put("productId",all.get(i).getId());
+                    //查询用户是否购买过该作品
+                    ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+all.get(i).getId()+"-%", user.getId(), 1);
+                    if (order != null) {
+                        map.put("state", 1);
+                    } else {
+                        map.put("state", 0);
+                    }
+                    List<ASongOrder> orders = orderDao.findASongOrdersByProductIdLikeAndState("%-"+all.get(i).getId()+"-%",1);
+                    if(orders==null){
+                        map.put("payNum",0);
+                    }else {
+                        map.put("payNum",orders.size());
+                    }
+                    list.add(map);
+                }
+            }
+        }
+        return Result.success(list);
+    }
+
+    @Override
+    public Result getLatestProductByType(int type,int count) {
+        List<Object> list = new ArrayList<>();
+        List<Product> products = productDao.findProductsByClassIdOrderByGoodNumAsc(type);
+        if(products!=null&&products.size()>0){
+            if(products.size()>count){
+                for(int i=0;i<count;i++){
+                    Product product = new Product();
+                    Author author = authorDao.findAuthorById(product.getAuthorId());
+                    User user = userDao.findUserById(author.getUserId());
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("authorId", product.getAuthorId());
+                    map.put("userId", user.getId());
+                    map.put("uname", user.getName());
+                    map.put("header", user.getHeader());
+                    map.put("title", product.getTitle());
+                    map.put("time", product.getTime());
+                    map.put("url", product.getProUrl());
+                    map.put("date", product.getCreateTime());
+                    map.put("commontSize", product.getPlayNum());
+                    map.put("good", product.getGoodNum());
+                    map.put("play", product.getPlayNum());
+                    map.put("download", product.getDownNum());
+                    map.put("productId",product.getId());
+                    ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+product.getId()+"-%", user.getId(), 1);
+                    if (order != null) {
+                        map.put("state", 1);
+                    } else {
+                        map.put("state", 0);
+                    }
+                    List<ASongOrder> orders = orderDao.findASongOrdersByProductIdLikeAndState("%-"+product.getId()+"-%",1);
+                    if(orders==null){
+                        map.put("payNum",0);
+                    }else {
+                        map.put("payNum",orders.size());
+                    }
+                    list.add(map);
+                }
+            }else {
+                for(int i=0;i<products.size();i++){
+                    Product product = new Product();
+                    Author author = authorDao.findAuthorById(product.getAuthorId());
+                    User user = userDao.findUserById(author.getUserId());
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("authorId", product.getAuthorId());
+                    map.put("userId", user.getId());
+                    map.put("uname", user.getName());
+                    map.put("header", user.getHeader());
+                    map.put("title", product.getTitle());
+                    map.put("time", product.getTime());
+                    map.put("url", product.getProUrl());
+                    map.put("date", product.getCreateTime());
+                    map.put("commontSize", product.getPlayNum());
+                    map.put("good", product.getGoodNum());
+                    map.put("play", product.getPlayNum());
+                    map.put("download", product.getDownNum());
+                    map.put("productId",product.getId());
+                    ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+product.getId()+"-%", user.getId(), 1);
+                    if (order != null) {
+                        map.put("state", 1);
+                    } else {
+                        map.put("state", 0);
+                    }
+                    List<ASongOrder> orders = orderDao.findASongOrdersByProductIdLikeAndState("%-"+product.getId()+"-%",1);
+                    if(orders==null){
+                        map.put("payNum",0);
+                    }else {
+                        map.put("payNum",orders.size());
+                    }
+                    list.add(map);
+                }
+            }
+        }
+        return Result.success(list);
+    }
+
+    @Override
+    public Result getHotAuthors() {
+        List<Object> res = new ArrayList<>();
+        List<AuthorOwnProduct> list = ownProducterDao.findAuthorOwnProductsByOrderByNumAsc();
+        if (list.size() > 6) {
+            for (int i = 0; i < 6; i++) {
+                Map<String, Object> map = new HashMap<>();
+                AuthorOwnProduct ownProduct = list.get(i);
+                Author author = authorDao.findAuthorById(ownProduct.getAuthorId());
+                User user = userDao.findUserById(author.getUserId());
+                map.put("userId", user.getId());
+                map.put("header", user.getHeader());
+                map.put("name", user.getName());
+                res.add(map);
+            }
+        } else {
+            for (int i = 0; i < list.size(); i++) {
+                Map<String, Object> map = new HashMap<>();
+                AuthorOwnProduct ownProduct = list.get(i);
+                Author author = authorDao.findAuthorById(ownProduct.getAuthorId());
+                User user = userDao.findUserById(author.getUserId());
+                map.put("userId", user.getId());
+                map.put("header", user.getHeader());
+                map.put("name", user.getName());
+                res.add(map);
+            }
+        }
+        return Result.success(res);
+    }
+
+    @Override
+    public Result getProjuctsByType(int type) {
+        //获取分类推荐作品
+        List<Product> all = productDao.findProductsByClassIdAndRecommendOrderByPayNum(type,true);
+        List<Object> list = new ArrayList<>();
+        if (all != null) {
+            for (int i = 0; i < all.size(); i++) {
+                Author author = authorDao.findAuthorById(all.get(i).getAuthorId());
+                User user = userDao.findUserById(author.getUserId());
+                Map<String, Object> map = new HashMap<>();
+                map.put("authorId", all.get(i).getAuthorId());
+                map.put("userId", user.getId());
+                map.put("uname", user.getName());
+                map.put("header", user.getHeader());
+                map.put("title", all.get(i).getTime());
+                map.put("time", all.get(i).getTime());
+                map.put("date", all.get(i).getCreateTime());
+                map.put("url", all.get(i).getProUrl());
+                map.put("download", all.get(i).getDownNum());
+                map.put("play", all.get(i).getPlayNum());
+                map.put("commontSize", all.get(i).getComNum());
+                map.put("good", all.get(i).getGoodNum());
+                map.put("productId",all.get(i).getId());
+                //查询用户是否购买过该作品
+                ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+all.get(i).getId()+"-%", user.getId(), 1);
+                if (order != null) {
+                    map.put("state", 1);
+                } else {
+                    map.put("state", 0);
+                }
+                List<ASongOrder> orders = orderDao.findASongOrdersByProductIdLikeAndState("%-"+all.get(i).getId()+"-%",1);
+                if(orders==null){
+                    map.put("payNum",0);
+                }else {
+                    map.put("payNum",orders.size());
+                }
+                list.add(map);
+            }
+        }
+        return Result.success(list);
+    }
+
+    @Override
+    public Result getProductById(Long proId,String token) {
+        String str = stringRedisTemplate.opsForValue().get(token);
+        if(str==null){
+            return Result.failure(ResultCode.FAILURE);
+        }
+        Long userId = Long.parseLong(redisService.getUserId(str));
+        Product product = productDao.findProductById(proId);
+        if(product!=null){
+            Author author = authorDao.findAuthorById(product.getAuthorId());
+            User user = userDao.findUserById(author.getUserId());
+            Map<String, Object> map = new HashMap<>();
+            map.put("authorId", product.getAuthorId());
+            map.put("userId", product);
+            map.put("uname", user.getName());
+            map.put("header", user.getHeader());
+            map.put("title", product.getTitle());
+            map.put("time", product.getTime());
+            map.put("url", product.getProUrl());
+            map.put("date", product.getCreateTime());
+            map.put("commontSize", product.getPlayNum());
+            map.put("good", product.getGoodNum());
+            map.put("play", product.getPlayNum());
+            map.put("download", product.getDownNum());
+            map.put("productId",product.getId());
+            ProGood proGood = goodDao.findProGoodByProIdAndUserId(product.getId(),userId);
+            if(proGood==null){
+                map.put("good",false);
+            }else {
+                if(proGood.getState()==0){
+                    map.put("good",false);
+                }else {
+                    map.put("good",true);
+                }
+            }
+            ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+product.getId()+"-%", user.getId(), 1);
+            if (order != null) {
+                map.put("state", 1);
+            } else {
+                map.put("state", 0);
+            }
+            List<ASongOrder> orders = orderDao.findASongOrdersByProductIdLikeAndState("%-"+product.getId()+"-%",1);
+            if(orders==null){
+                map.put("payNum",0);
+            }else {
+                map.put("payNum",orders.size());
+            }
+            //当前用户是否关注了作者用户
+            Notice notice = noticeDao.findNoticeByFormUserIdAndToUserId(userId,user.getId());
+            if(notice==null){
+                map.put("notice",false);
+            }else {
+                map.put("notice",true);
+            }
+
+            return Result.success(map);
+        }
+        return Result.failure(ResultCode.FAILURE);
+    }
+
+    @Override
+    public Result addPlay(Long proId, String token) {
+        String str = stringRedisTemplate.opsForValue().get(token);
+        if(null==str){
+            return Result.failure(ResultCode.FAILURE);
+        }
+        Long userId = Long.parseLong(redisService.getUserId(str));
+        Play play = new Play();
+        Date date = new Date();
+        play.setProId(proId);
+        play.setUserId(userId);
+        play.setCreateTime(date);
+        play.setUpdateTime(date);
+        playDao.save(play);
+        //次数记录到作品
+        Product product = productDao.findProductById(proId);
+        product.setPlayNum(product.getPlayNum()+1);
+        productDao.save(product);
+        return Result.success();
+    }
+
+    @Override
+    public Result addShare(Long proId, String token) {
+        String str = stringRedisTemplate.opsForValue().get(token);
+        if(null==str){
+            return Result.failure(ResultCode.FAILURE);
+        }
+        Long userId = Long.parseLong(redisService.getUserId(str));
+        Share share = new Share();
+        Date date = new Date();
+        share.setProId(proId);
+        share.setUserId(userId);
+        share.setCreateTime(date);
+        share.setUpdateTime(date);
+        shareDao.save(share);
+        //次数记录到作品
+        Product product = productDao.findProductById(proId);
+        product.setShareNum(product.getShareNum()+1);
+        productDao.save(product);
+        return Result.success();
     }
 }

@@ -6,10 +6,11 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import java.io.Serializable;
 import java.util.Date;
 
 @Entity
-public class Author {
+public class Author implements Serializable {
 
 
     public final static int REQ = 0;//待审核
@@ -30,6 +31,7 @@ public class Author {
     private int state;//状态
     private Date createTime;
     private Date updateTime;
+
 
     public Date getUpdateTime() {
         return updateTime;

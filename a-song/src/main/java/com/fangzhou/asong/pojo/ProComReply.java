@@ -4,13 +4,14 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import java.io.Serializable;
 import java.util.Date;
 
 /**
  * 回复
  */
 @Entity
-public class ProComReply {
+public class ProComReply implements Serializable {
 
 
     @Id
@@ -22,6 +23,15 @@ public class ProComReply {
     private int replyForType;//回复类型 1评论 2回复
     private Date CreateTime;
     private Date UpdateTime;
+    private int goodNum;//点赞量
+
+    public int getGoodNum() {
+        return goodNum;
+    }
+
+    public void setGoodNum(int goodNum) {
+        this.goodNum = goodNum;
+    }
 
     public Long getId() {
         return id;

@@ -12,10 +12,19 @@ public class ProGood implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
+    private Long proId;
     private Long userId;
     private Date createTime;
     private Date updateTime;
     private int state;//状态
+
+    public Long getProId() {
+        return proId;
+    }
+
+    public void setProId(Long proId) {
+        this.proId = proId;
+    }
 
     public Long getId() {
         return id;
