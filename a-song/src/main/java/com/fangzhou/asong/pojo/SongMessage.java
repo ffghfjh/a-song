@@ -1,34 +1,25 @@
 package com.fangzhou.asong.pojo;
 
+import com.sun.org.apache.xpath.internal.operations.Bool;
+
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import java.io.Serializable;
 import java.util.Date;
 
-/**
- * 评论
- */
 @Entity
-public class ProCommont implements Serializable {
+public class SongMessage {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
-    private Long proId;//作品Id
-    private Long userId;//用户Id
-    private String context;//评论内容
-    private Date createTime;//创建时间
-    private Date UpdateTime;//更新时间
-    private int goodNum;//点赞量
+    private Long userId;
+    private Integer type;
 
-    public int getGoodNum() {
-        return goodNum;
-    }
+    private Date createTime;
 
-    public void setGoodNum(int goodNum) {
-        this.goodNum = goodNum;
-    }
+    private Date updateTime;
+    private Boolean isread;
 
     public Long getId() {
         return id;
@@ -36,14 +27,6 @@ public class ProCommont implements Serializable {
 
     public void setId(Long id) {
         this.id = id;
-    }
-
-    public Long getProId() {
-        return proId;
-    }
-
-    public void setProId(Long proId) {
-        this.proId = proId;
     }
 
     public Long getUserId() {
@@ -54,12 +37,12 @@ public class ProCommont implements Serializable {
         this.userId = userId;
     }
 
-    public String getContext() {
-        return context;
+    public int getType() {
+        return type;
     }
 
-    public void setContext(String context) {
-        this.context = context;
+    public void setType(int type) {
+        this.type = type;
     }
 
     public Date getCreateTime() {
@@ -71,11 +54,18 @@ public class ProCommont implements Serializable {
     }
 
     public Date getUpdateTime() {
-        return UpdateTime;
+        return updateTime;
     }
 
     public void setUpdateTime(Date updateTime) {
-        UpdateTime = updateTime;
+        this.updateTime = updateTime;
     }
 
+    public Boolean getIsread() {
+        return isread;
+    }
+
+    public void setIsread(Boolean isread) {
+        this.isread = isread;
+    }
 }

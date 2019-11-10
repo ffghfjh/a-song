@@ -3,15 +3,13 @@ package com.fangzhou.asong.controller;
 import com.fangzhou.asong.service.ASongService;
 import com.fangzhou.asong.service.ProducterService;
 import com.fangzhou.asong.util.Result;
+import com.fangzhou.asong.util.ResultCode;
 import com.fangzhou.asong.util.UserLoginToken;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -34,7 +32,7 @@ public class ASongController {
       return aSongService.getProClass();
     }
 
-    @PutMapping("/addFaceBack")
+    @PostMapping("/addFaceBack")
     @UserLoginToken
     public Result addFaceBack(String context, String name, HttpServletRequest request){
        return aSongService.addFaceBack(context,name,request.getHeader("token"));
@@ -43,13 +41,16 @@ public class ASongController {
     @GetMapping("/download")
     @UserLoginToken
     public Result download(Long proId,HttpServletResponse response,HttpServletRequest request){
+        if(proId==null){
+            return Result.failure(ResultCode.PARAM_IS_BLANK);
+        }
         return aSongService.downLoadProduct(proId,request.getHeader("token"),response);
     }
 
     @GetMapping("/getAuthors")
-    public Result getAuthors(){
+    public Result getAuthors(int count){
         logger.info("getAuthors");
-        return producterService.getAuthors();
+        return producterService.getAuthors(count);
     }
 
     @GetMapping("/getAdvertising")

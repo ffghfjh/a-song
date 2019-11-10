@@ -2,10 +2,10 @@ spring:
   application:
     name: file-service
   datasource:
-    url: jdbc:mysql://192.168.5.108:3306/a-song?serverTimezone=GMT%2B8&useUnicode=true&characterEncoding=utf-8
+    url: jdbc:mysql://120.24.253.38:3306/a-song?serverTimezone=GMT%2B8&guseUnicode=true&characterEncoding=utf-8
     #url jdbc:mysql://192.168.:3306/a-song?serverTimezone=GMT%2B8&useUnicode=true&characterEncoding=utf-8
     username: root
-    password: 123456
+    password: newpassword
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     #指定数据库
@@ -25,7 +25,7 @@ spring:
   #redis
   redis:
     #redis机器ip
-    hostname: 192.168.5.108
+    hostname: 120.24.253.38
     #redis端口
     port: 6379
     #redis密码
@@ -50,14 +50,18 @@ spring:
     testOnBorrow: true
     #在空闲时检查有效性, 默认false
     testWhileIdle: true
-    host: 192.168.5.108
+    host: 120.24.253.38
 
 
   #redis集群配置
   #spring.cluster.nodes=192.168.1.1:7001,192.168.1.1:7002,192.168.1.1:7003,192.168.1.1:7004,192.168.1.1:7005,192.168.1.1:7006
   #spring.cluster.max-redirects=3
+  servlet:
+    multipart:
+      max-file-size: 10MB
 server:
-  port: 8081
+  port: 8080
+  address:
 fdfs:
   soTimeout: 1500
   connectTimeout: 600
@@ -65,4 +69,4 @@ fdfs:
     width: 150
     height: 150
   trackerList:            #TrackerList参数,支持多个
-    - 192.168.5.108:22122
+    - 120.24.253.38:22122

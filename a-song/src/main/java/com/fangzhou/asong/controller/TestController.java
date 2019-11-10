@@ -5,6 +5,7 @@ import com.fangzhou.asong.pojo.Author;
 import com.fangzhou.asong.pojo.AuthorOwnProduct;
 import com.fangzhou.asong.pojo.Product;
 import com.fangzhou.asong.pojo.User;
+import com.fangzhou.asong.service.FileService;
 import com.fangzhou.asong.service.RedisService;
 import com.fangzhou.asong.util.JwtTokenUtil;
 import com.fangzhou.asong.util.PassToken;
@@ -15,6 +16,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import springfox.documentation.annotations.Cacheable;
 
 import javax.annotation.Resource;
@@ -36,6 +38,8 @@ public class TestController {
     ProductDao productDao;
     @Autowired
     OwnProducterDao ownProducterDao;
+    @Autowired
+    FileService fileService;
 
     @GetMapping("/test")
     public String test() {
@@ -95,6 +99,11 @@ public class TestController {
        user.setState(1);
        userDao.save(user);
        return Result.success();
+    }
+
+    @PostMapping("/addFile")
+    public Result addFile(MultipartFile file){
+        return Result.success(fileService.saveFile(file,"mp3"));
     }
 
 

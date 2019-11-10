@@ -51,7 +51,7 @@ public interface ProducterService {
      * @param proId
      * @return
      */
-    Result getProductCommont(Long proId);
+    Result getProductCommont(Long proId,String token);
 
     /**
      * 获取最热
@@ -82,7 +82,7 @@ public interface ProducterService {
      * 获取推荐作者
      * @return
      */
-    Result getAuthors();
+    Result getAuthors(int count);
 
     /**
      * 获取推荐作品
@@ -101,7 +101,7 @@ public interface ProducterService {
      * 获取热门作者
      * @return
      */
-    Result getHotAuthors();
+    Result getHotAuthors(int count);
 
 
     /**
@@ -111,7 +111,7 @@ public interface ProducterService {
      */
     Result getProjuctsByType(int type);
     /**
-     * 根据ID获取作品信息i
+     * 根据ID获取作品信息
      * @param proId
      * @return
      */

@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="divport" content="width=device-width,initial-scale=1 user-scalable=0"/>
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+    <title>fenxiang</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        a {
+            text-decoration: none;
+            color: #333;
+        }
+    </style>
+    <style>
+        /* pages/fenxiang/fenxiang.wxss */
+        .header {
+            width: 100%;
+            height: 100px;
+            background-size: 100% 100%;
+            text-align: center;
+            position: relative;
+            font-size: 37px;
+            letter-spacing: 2px;
+            line-height: 100px;
+            color: #fff;
+        }
+
+        .header > a {
+            width: 150px;
+            position: absolute;
+            top: 5px;
+            left: -10px;
+        }
+
+        .header > a > image {
+            width: 20px;
+            height: 40px;
+            background-size: 20% 20%;
+        }
+
+        input {
+            /* margin-top: 32px; */
+            height: 50px;
+            width: 60%;
+            color: rgba(0, 0, 0, 0.5);
+            font-size: 35px;
+            border: none;
+        }
+
+
+        .center {
+            width: 100%;
+            height: 9000px;
+            overflow: hidden;
+            font-size: 40px;
+        }
+
+        .center > div {
+            width: 100%;
+            height: 100px;
+            overflow: hidden;
+            position: relative;
+            /*border-bottom: 1px solid rgba(0, 0, 0, 0.2);*/
+        }
+
+        .center > div {
+            height: 85px;
+            padding: 50px 50px 0;
+        }
+
+        .center > .ting {
+            margin-top: 45px;
+            padding: 0 48px;
+            width: 100%;
+            height: 200px;
+        }
+
+        .ting2 {
+            display: block;
+            margin-top: 50px;
+            width: 845px;
+            height: 90px;
+            border: 1px solid #333;
+            font-size: 30px;
+            line-height: 90px;
+            padding: 0 15px;
+        }
+
+        .ting3 {
+            margin-left: 50px;
+
+            color: rgba(0, 0, 0, 0.4);
+        }
+
+        .right {
+            float: right;
+        }
+
+        .left {
+            float: left;
+        }
+
+        .left2 {
+            margin-right: 115px;
+        }
+
+        .text {
+            display: inline;
+        }
+
+        button {
+            margin-top: 50px;
+            width: 80%;
+            background-color: skyblue;
+            color: #fff;
+            height: 100px;
+            font-size: 40px;
+            border-radius: 10px;
+            margin-left: 10%;
+        }
+
+        .tuijie {
+            margin-right: 82px;
+
+        }
+
+    </style>
+
+</head>
+<body>
+
+
+<div>
+    <div class="center">
+        <div>
+            <text class="left left2">名称</text>
+            <input type="text" placeholder="起个名字" class="left name" id="name">
+        </div>
+
+        <div>
+            <text class="left left2">类型</text>
+            <!-- <input type="text" placeholder="请选择" class="left name" id="leixin"> -->
+            <select id="leixin" style="width:120px;height:55px;font-size:30px">
+            </select>
+        </div>
+
+        <div class="ting">
+            <text>作品内容</text>
+            <text class="ting3">请上传不超过10分钟的音频</text>
+            <input type="file" class="ting2 " id="importModel"/>点击上传<label class="right"></label>
+        </div>
+
+        <div id="citydiv">
+            <text class="left left2">城市</text>
+            <input type="text" placeholder="省份 城市" class="left name" id="city">
+        </div>
+
+        <div id="tuijianrendiv">
+            <text class="left left2 tuijie">推荐人</text>
+            <input type="text" placeholder="选填" class="left name" id="tuijianren">
+        </div>
+
+        <div id="agediv">
+            <text class="left left2">年龄</text>
+            <input type="text" placeholder="年龄" class="left name" id="age">
+        </div>
+
+        <button onclick="shangchang()">提交</button>
+
+    </div>
+
+</div>
+
+<script>
+    var isshiming = false;
+    tokens = "";
+
+    /**
+     * 将秒转换为 分:秒
+     * s int 秒数
+     */
+    function s_to_hs(s){
+        //计算分钟
+        //算法：将秒数除以60，然后下舍入，既得到分钟数
+        var h;
+        h  =   Math.floor(s/60);
+        //计算秒
+        //算法：取得秒%60的余数，既得到秒数
+        s  =   s%60;
+        //将变量转换为字符串
+        h    +=    '';
+        s    +=    '';
+        //如果只有一位数，前面增加一个0
+        h  =   (h.length==1)?'0'+h:h;
+        s  =   (s.length==1)?'0'+s:s;
+        return h+':'+s;
+    }
+
+    $(function () {
+        console.log("运行")
+        var url = window.location;
+        var token = getUrlParam(url, 'token');
+        tokens = token;
+        //alert(token);
+        //判断是否是作者
+        $.ajax({
+            type: "GET",
+            url: "/getIsAuthor",
+            headers: {'Content-Type': 'application/json;charset=utf8', 'token': tokens},
+            success: function (data) {
+                if (data.data) {
+                    $("#citydiv").css({"display": "none"});
+                    $("#tuijianrendiv").css({"display": "none"});
+                    $("#agediv").css({"display": "none"});
+                    isshiming = true;
+                } else {
+
+                }
+
+            },
+        });
+        //查询出所有分类
+        $.ajax({
+            type: "GET",
+            url: "/main/getProClass",
+            success: function (data) {
+                if (data.code == 1) {
+                    $.each(data.data, function (i, item) {
+                        var option = $("<option></option>");
+                        option.append(item.name);
+                        option.attr("fenleiId", item.id);
+                        $("#leixin").append(option);
+                    });
+                } else {
+
+                }
+
+            }
+        });
+    });
+
+
+
+    $("#sub_btn").click(function () {
+        console.log("进入点击")
+        //shangchang();
+    });
+
+    //上传作品
+    function shangchang() {
+        console.log("上传作品")
+        var files = $("#importModel")[0].files[0];
+        //获取视频或者音频时长
+        var fileurl = URL.createObjectURL(files);
+        //经测试，发现audio也可获取视频的时长
+        var audioElement = new Audio(fileurl);
+        var duration;
+        audioElement.addEventListener("loadedmetadata", function (_event) {
+            alert(1);
+            duration = audioElement.duration;
+            console.log("duration");
+            console.log(duration);//单位：秒
+            var time = s_to_hs(duration).substr(0,5);
+            var name = $("#name").val();
+            var leixin = $("#leixin").attr("fenleiid");
+            var city = $("#city").val();
+            var tuijianren = $("#tuijianren").val();
+            var age = $("#age").val();
+            var formData = new FormData();
+            formData.append("file", files);
+            formData.append("name", name);
+            formData.append("typeId", 1);
+            formData.append("time",time);
+            formData.append("token",tokens);
+            alert("typeId");
+            if (isshiming) {
+
+                $.ajax({
+                    type: "POST",
+                    url: "/releaseProduct",
+                    dataType:'json',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (data) {
+                        if (data.code == 1) {
+                            alert("上传成功")
+                        } else {
+
+                        }
+
+                    },
+                    error:function () {
+                        alert("异常")
+                    }
+                });
+            } else {
+                formData.append("city", city);
+                formData.append("reference", tuijianren);
+                formData.append("age", age);
+                $.ajax({
+                    type: "POST",
+                    url: "/releaseProductNoAuthor",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (data) {
+                        if (data.code == 1) {
+                           alert('上传成功')
+                        } else {
+
+                        }
+
+                    },
+                    error:function () {
+                        alert("异常")
+                    }
+                });
+            }
+        });
+
+    }
+
+    function getUrlParam(url, name) {
+        var pattern = new RegExp("[?&]" + name + "\=([^&]+)", "g");
+        var matcher = pattern.exec(url);
+        var items = null;
+        if (matcher != null) {
+            try {
+                items = decodeURIComponent(decodeURIComponent(matcher[1]));
+            } catch (e) {
+                try {
+                    items = decodeURIComponent(matcher[1]);
+                } catch (e) {
+                    items = matcher[1];
+                }
+            }
+        }
+        return items;
+    }
+</script>
+</body>
+
+</html>

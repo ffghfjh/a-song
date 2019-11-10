@@ -40,5 +40,4 @@ public class WXCore {
         String iv = "r7BXXKkLb8qrSNn05n0qiA==";
         System.out.println(decrypt(appId, encryptedData, sessionKey, iv));
     }
-
 }

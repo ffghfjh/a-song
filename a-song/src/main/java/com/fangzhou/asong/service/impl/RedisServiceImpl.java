@@ -37,17 +37,17 @@ public class RedisServiceImpl implements RedisService {
 
     @Override
     public String getOpenId(String str) {
-        return (str.split("-"))[0];
+        return (str.split("%"))[0];
     }
 
     @Override
     public String getSessionKey(String str) {
-        return (str.split("-"))[1];
+        return (str.split("%"))[1];
     }
 
     @Override
     public String getUserId(String str) {
-        return (str.split("-"))[2];
+        return (str.split("%"))[2];
     }
 
 }

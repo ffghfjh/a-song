@@ -57,8 +57,9 @@ public class ProducterController {
         return producterService.replyGood(replyId,request.getHeader("token"));
     }
     @GetMapping("/getCommons")
-    public Result getCommons(Long proId){
-        return producterService.getProductCommont(proId);
+    @UserLoginToken
+    public Result getCommons(Long proId,HttpServletRequest request){
+        return producterService.getProductCommont(proId,request.getHeader("token"));
     }
 
     @GetMapping("/getHotProducts")
@@ -93,8 +94,11 @@ public class ProducterController {
 
     @GetMapping("/getProducts")
     @UserLoginToken
-    public Result getProducts(int count){
+    public Result getProducts(Integer count){
         logger.info("getProducts");
+        if(count==null){
+            return Result.failure(ResultCode.PARAM_IS_BLANK);
+        }
         return producterService.getProducts(count);
     }
 
@@ -102,7 +106,7 @@ public class ProducterController {
 
     @GetMapping("/getProductsByType")
     @UserLoginToken
-    public Result getProductsByType(int type){
+    public Result getProductsByType(Integer type){
         logger.info("getProductsByType");
         return producterService.getProjuctsByType(type);
     }
@@ -110,9 +114,12 @@ public class ProducterController {
 
     @GetMapping("/getHotAuthors")
     @UserLoginToken
-    public Result getHotAuthors(){
+    public Result getHotAuthors(Integer count){
         logger.info("getHotAuthors");
-        return producterService.getHotAuthors();
+        if(count==null){
+            return Result.failure(ResultCode.PARAM_IS_BLANK);
+        }
+        return producterService.getHotAuthors(count);
     }
 
     @PostMapping("/addPlay")

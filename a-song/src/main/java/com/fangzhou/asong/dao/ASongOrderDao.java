@@ -10,4 +10,10 @@ public interface ASongOrderDao extends CrudRepository<ASongOrder,Long> {
 
     List<ASongOrder> findASongOrdersByProductIdLikeAndState(String proId, int state);
 
+    List<ASongOrder> findASongOrdersByUserIdAndState(Long userId,int state);
+
+    ASongOrder findASongOrderByOrderNum(String orderNum);
+
+    List<ASongOrder> findASongOrdersByUserId(Long userId);
+
 }

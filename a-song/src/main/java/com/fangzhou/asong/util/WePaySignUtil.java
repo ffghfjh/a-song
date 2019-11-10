@@ -15,7 +15,7 @@ public class WePaySignUtil {
      * @Description :根据签名算法得出签名---参数按照参数名ASCII码从小到大排序（字典序）
      * @Date : 10:55 2018/6/5
      **/
-    public static String createSign(SortedMap<Object,Object> parameters, String key){
+    public static String createSign(SortedMap<String,Object> parameters, String key){
         StringBuffer sb = new StringBuffer();
         StringBuffer sbkey = new StringBuffer();
         Set es = parameters.entrySet();  //所有参与传参的参数按照accsii排序（升序）
@@ -32,10 +32,13 @@ public class WePaySignUtil {
         }
         //System.out.println("字符串:"+sb.toString());
         sbkey=sbkey.append("key="+key);
-        System.out.println("字符串:"+sbkey.toString());
+        System.out.println("签名字符串:"+sbkey.toString());
         //MD5加密,结果转换为大写字符
-        String sign = MD5Encoder.encode(sbkey.toString().getBytes()).toUpperCase();
+
+        String sign = MD5Util.MD5Encode(sbkey.toString()).toUpperCase();
         System.out.println("MD5加密值:"+sign);
         return sb.toString()+"sign="+sign;
     }
+
+
 }

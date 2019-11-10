@@ -1,15 +1,21 @@
 package com.fangzhou.asong.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
+import com.fangzhou.asong.bean.OrderInfo;
+import com.fangzhou.asong.bean.OrderReturnInfo;
+import com.fangzhou.asong.bean.SignInfo;
 import com.fangzhou.asong.dao.*;
 import com.fangzhou.asong.pojo.*;
 import com.fangzhou.asong.service.ASongService;
 import com.fangzhou.asong.service.FileService;
 import com.fangzhou.asong.service.RedisService;
-import com.fangzhou.asong.util.HttpUtil;
-import com.fangzhou.asong.util.Result;
-import com.fangzhou.asong.util.ResultCode;
-import com.fangzhou.asong.util.WePaySignUtil;
+import com.fangzhou.asong.util.*;
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.xml.DomDriver;
+import com.thoughtworks.xstream.io.xml.XmlFriendlyNameCoder;
+import org.apache.http.HttpRequest;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpPost;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +31,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -76,6 +86,7 @@ public class ASongServiceImpl implements ASongService {
     String key;
     @Value("${product.price}")
     float price;
+    String payUrl = "https://api.mch.weixin.qq.com/pay/unifiedorder";
 
 
     Logger logger = LoggerFactory.getLogger(ASongServiceImpl.class);
@@ -190,14 +201,6 @@ public class ASongServiceImpl implements ASongService {
                 }
                 //添加下载次数
                 product.setDownNum(product.getDownNum()+1);
-                //添加下载记录到用户下载list中
-//                ProductDownload download = new ProductDownload();
-//                Date date = new Date();
-//                download.setProId(proId);
-//                download.setUserId(userId);
-//                download.setCreateTime(date);
-//                download.setUpdateTime(date);
-//                redisTemplate.opsForList().leftPush("download_" + userId, download);
                 return Result.success();
             } else {
                 result = Result.failure(ResultCode.FAILURE);
@@ -205,7 +208,7 @@ public class ASongServiceImpl implements ASongService {
                 return result;
             }
         }
-        return Result.failure(ResultCode.FAILURE);
+        return null;
     }
 
     @Override
@@ -252,52 +255,99 @@ public class ASongServiceImpl implements ASongService {
             result.setMsg("token不存在");
             return result;
         }
-
-        SortedMap<Object, Object> map = new TreeMap<>();
-        map.put("appid", appId);
-        map.put("mch_id", mchId);
-        map.put("nonce_str", new Random().toString());
-        map.put("body", "一首歌作品购买");
+        Long userId = Long.parseLong(redisService.getUserId(str));
+        User user = userDao.findUserById(userId);
         //商户订单号
         String outTradeNo = getOrderNo();
-        map.put("out_trade_no", outTradeNo);
-        //订单金额
-        map.put("total_fee", price);
-        //终端ip
-        map.put("spbill_create_ip", ip);
-        //通知地址
-        map.put("notify_url", noticeUrl);
-        //交易类型
-        map.put("trade_type", "JSAPI");
-        String sign = WePaySignUtil.createSign(map, key);
-        map.put("sign", sign);
-        JSONObject jsonObject = HttpUtil.postToJSONObject("https://api.mch.weixin.qq.com/pay/unifiedorder", map);
-        if (jsonObject != null) {
-            String returnCode = jsonObject.getString("return_code");
-            if (returnCode.equals("SUCCESS")) {
-                ASongOrder order = new ASongOrder();
+        OrderInfo order = new OrderInfo();
+        order.setAppid(appId);
+        order.setMch_id(mchId);
+        String nonceStr = RandomStringGenerator.getRandomStringByLength(32);
+        logger.info(nonceStr);
+        order.setNonce_str(nonceStr);
+        order.setBody("一首歌公益");
+        order.setOut_trade_no(outTradeNo);
+        int money = (int) (price*100)*proIds.size();
+        order.setTotal_fee(money);
+        order.setSpbill_create_ip(ip);
+        order.setTrade_type("JSAPI");
+        order.setOpenid(user.getOpenid());
+        //生成签名
+        try {
+            Map<String,String> map = new HashMap<>();
+            map.put("appid",order.getAppid());
+            map.put("mch_id",order.getMch_id());
+            map.put("nonce_str",order.getNonce_str());
+            map.put("body",order.getBody());
+            map.put("out_trade_no",order.getOut_trade_no());
+            map.put("total_fee",order.getTotal_fee()+"");
+            map.put("spbill_create_ip",order.getSpbill_create_ip());
+            map.put("notify_url",order.getNonce_str());
+            map.put("trade_type",order.getTrade_type());
+            map.put("openid",user.getOpenid());
+
+            String sign = Signature.getSign(order,key);
+            logger.info("签名："+sign);
+            order.setSign(sign);
+            String result1 = WePayHttpRequest.sendPost(payUrl,order);
+
+            XStream xStream = new XStream();
+            XStream.setupDefaultSecurity(xStream);
+            xStream.alias("xml", OrderReturnInfo.class);
+            logger.info("下单返回参数"+result1);
+            OrderReturnInfo returnInfo = (OrderReturnInfo)xStream.fromXML(result1);
+            logger.info("解析完毕："+returnInfo.toString());
+            // 二次签名
+            if ("SUCCESS".equals(returnInfo.getReturn_code()) && returnInfo.getReturn_code().equals(returnInfo.getResult_code())) {
+                SignInfo signInfo = new SignInfo();
+                signInfo.setAppId(appId);
+                long time = System.currentTimeMillis()/1000;
+                signInfo.setTimeStamp(String.valueOf(time));
+                signInfo.setNonceStr(RandomStringGenerator.getRandomStringByLength(32));
+                signInfo.setRepay_id("prepay_id="+returnInfo.getPrepay_id());
+                signInfo.setSignType("MD5");
+                //生成签名
+                String sign1 = Signature.getSign(signInfo,key);
+                Map payInfo = new HashMap();
+                payInfo.put("timeStamp", signInfo.getTimeStamp());
+                payInfo.put("nonceStr", signInfo.getNonceStr());
+                payInfo.put("package", signInfo.getRepay_id());
+                payInfo.put("signType", signInfo.getSignType());
+                payInfo.put("paySign", sign1);
+
+                //统一下单业务
+                ASongOrder order1 = new ASongOrder();
                 Date date = new Date();
-                order.setMoney(price);
-                order.setOrderNum(outTradeNo);
+                order1.setUserId(userId);
+                order1.setMoney(money);
+                order1.setOrderNum(outTradeNo);
                 String productId = "-";
                 for(Long proId : proIds){
                     productId=productId+proId+"-";
                 }
-                order.setProductId(productId);
-                order.setState(0);
-                order.setCreateTime(date);
-                order.setUpdateTime(date);
-                orderDao.save(order);
-                //用户ID
-                Long userId = Long.parseLong(redisService.getUserId(str));
-                order.setUserId(userId);
-                String nonceStr = jsonObject.getString("nonce_str");
-                String prepayId = jsonObject.getString("prepay_id");
-                Map<String,String> map1 = new HashMap<>();
-                map1.put("nonceStr",nonceStr);
-                map1.put("prepayId",prepayId);
-                return Result.success(map1);
+                order1.setProductId(productId);
+                order1.setState(0);
+                order1.setCreateTime(date);
+                order1.setUpdateTime(date);
+                orderDao.save(order1);
+                return Result.success(payInfo);
             }
+
+        } catch (IllegalAccessException e) {
+            logger.error("签名生成异常");
+            e.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (UnrecoverableKeyException e) {
+            e.printStackTrace();
+        }  catch (KeyStoreException e) {
+            e.printStackTrace();
+        } catch (KeyManagementException e) {
+            e.printStackTrace();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
         return Result.failure(ResultCode.FAILURE);
     }
@@ -315,7 +365,7 @@ public class ASongServiceImpl implements ASongService {
                         Map<String, Object> map = new HashMap<>();
                         map.put("authorId", product.getAuthorId());
                         map.put("userId", user.getId());
-                        map.put("uname", user.getName());
+                        map.put("name", user.getName());
                         map.put("header", user.getHeader());
                         map.put("title", product.getTitle());
                         map.put("time", product.getTime());
@@ -351,7 +401,6 @@ public class ASongServiceImpl implements ASongService {
                         list.add(map);
                     }
                     return Result.success(list);
-
             }
         }
         return Result.failure(ResultCode.FAILURE);

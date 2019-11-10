@@ -5,4 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ReferralsDao extends JpaRepository<Referrals,Long> {
 
+    Referrals findReferralsByName(String name);
+
 }

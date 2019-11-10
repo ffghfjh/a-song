@@ -41,6 +41,7 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
         if (method.isAnnotationPresent(PassToken.class)) {
             PassToken passToken = method.getAnnotation(PassToken.class);
             if (passToken.required()) {
+                logger.info("认证成功");
                 return true;
             }
         }
@@ -57,17 +58,19 @@ public class AuthenticationInterceptor implements HandlerInterceptor {
                 try{
                     Claims clains = JwtTokenUtil.parseJWT(token);
                     if(clains.getIssuer().equals("dengshilin")){  //验证签发者
+                        logger.info("认证成功");
                         return true;
                     }else {
                         logger.info("签发者验证失败");
                         return false;
                     }
                 }catch (Exception e){
+                    logger.info("认证失败");
                     return false;
                 }
             }
         }
-
+        logger.info("认证成功");
         return true;
     }
 
