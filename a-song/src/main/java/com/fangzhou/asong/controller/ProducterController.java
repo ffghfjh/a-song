@@ -64,51 +64,51 @@ public class ProducterController {
 
     @GetMapping("/getHotProducts")
     @UserLoginToken
-    public Result getHotProducts(int count){
+    public Result getHotProducts(int count,HttpServletRequest request){
         logger.info("getLatestProduct");
-        return producterService.getHotProduct(count);
+        return producterService.getHotProduct(count,request.getHeader("token"));
     }
 
 
     @GetMapping("/getHotProductsByType")
     @UserLoginToken
-    public Result getHotProductsByType(int count){
-        return producterService.getHotProductsByType(count);
+    public Result getHotProductsByType(int count,HttpServletRequest request){
+        return producterService.getHotProductsByType(count,request.getHeader("token"));
     }
 
     @GetMapping("/getLatestProduct")
     @UserLoginToken
-    public Result getLatestProduct(int count){
+    public Result getLatestProduct(int count,HttpServletRequest request){
         logger.info("getLatestProduct");
-        return producterService.getLatestProduct(count);
+        return producterService.getLatestProduct(count,request.getHeader("token"));
     }
 
 
     @GetMapping("/getLatestProductByType")
     @UserLoginToken
-    public Result getLatestProductByType(int type,int count){
+    public Result getLatestProductByType(int type,int count,HttpServletRequest request){
         logger.info("getLatestProductByType");
-        return producterService.getLatestProductByType(type,count);
+        return producterService.getLatestProductByType(type,count,request.getHeader("token"));
     }
 
 
     @GetMapping("/getProducts")
     @UserLoginToken
-    public Result getProducts(Integer count){
+    public Result getProducts(Integer count,HttpServletRequest request){
         logger.info("getProducts");
         if(count==null){
             return Result.failure(ResultCode.PARAM_IS_BLANK);
         }
-        return producterService.getProducts(count);
+        return producterService.getProducts(count,request.getHeader("token"));
     }
 
 
 
     @GetMapping("/getProductsByType")
     @UserLoginToken
-    public Result getProductsByType(Integer type){
+    public Result getProductsByType(Integer type,HttpServletRequest request){
         logger.info("getProductsByType");
-        return producterService.getProjuctsByType(type);
+        return producterService.getProjuctsByType(type,request.getHeader("token"));
     }
 
 

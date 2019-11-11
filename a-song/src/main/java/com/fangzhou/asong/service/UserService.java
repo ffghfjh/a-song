@@ -43,7 +43,7 @@ public interface UserService {
      * @return
      */
     @Transactional
-    Result releaseProductNoAu(String name,int type,String time,MultipartFile file,String token,String city,String reference,int age);
+    Result releaseProductNoAu(String name,int type,String time,MultipartFile file,String token,String prov,String city,String reference,int age);
 
     /**
      * 作者发布作品

@@ -1,0 +1,79 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html" charset="UTF-8">
+    <title>作品下载</title>
+    <style type="text/css">
+        .demo{width:80%; margin:20px auto}
+        .demo p{line-height:24px}
+    </style>
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js" charset="UTF-8"></script>
+    <script type="text/javascript" src="cityselect.js" charset="UTF-8"></script>
+</head>
+<body>
+<div id="main">
+    <a id="downUrl"  href="" style="font-size: 30px">下载作品</a>
+    <script>
+        var url = window.location;
+        var token = getUrlParam(url, 'token');
+        var proId = getUrlParam(url,'proId')
+        $.ajax({
+            url:"/main/download",
+            data:{
+                "proId":proId,
+                "token":token
+            },
+            success:function (data) {
+
+                if(data.code==1){
+                    var downUrl = getUrlParam(url,'dizhi');
+                    $("#downUrl").href=downUrl;
+                }else if(data.code==0){
+                   alert("无法下载")
+                }
+
+            }
+        })
+
+
+        //downloadFileByForm()
+
+        // 模拟表单提交同步方式下载文件
+        // 能够弹出保存文件对话框
+        function downloadFileByForm() {
+            console.log(token)
+            console.log(proId)
+            console.log("ajaxDownloadSynchronized");
+            var url = "http://192.168.5.3/main/download";
+            var fileName = "testAjaxDownload.txt";
+            var form = $("<form></form>").attr("action", url).attr("method", "get");
+            form.append($("<input></input>").attr("type", "hidden").attr("name", "proId").attr("value", proId));
+            form.append($("<input></input>").attr("type", "hidden").attr("name", "token").attr("value", token));
+            form.appendTo('body').submit().remove();
+        }
+
+
+        function getUrlParam(url, name) {
+            var pattern = new RegExp("[?&]" + name + "\=([^&]+)", "g");
+            var matcher = pattern.exec(url);
+            var items = null;
+            if (matcher != null) {
+                try {
+                    items = decodeURIComponent(decodeURIComponent(matcher[1]));
+                } catch (e) {
+                    try {
+                        items = decodeURIComponent(matcher[1]);
+                    } catch (e) {
+                        items = matcher[1];
+                    }
+                }
+            }
+            return items;
+        }
+    </script>
+</div>
+<br />
+<br />
+</div>
+</body>
+</html>

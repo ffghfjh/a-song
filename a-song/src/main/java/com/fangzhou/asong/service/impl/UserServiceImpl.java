@@ -125,7 +125,7 @@ public class UserServiceImpl implements UserService {
             //新用户
             else {
                 logger.info(appid + "," + encryptedData + "," + sessionKey + "," + iv);
-                String userInfo = WXCore.decrypt(appid, encryptedData, sessionKey, iv);
+                String userInfo = WxCore.decrypt(appid, encryptedData, sessionKey, iv);
                 logger.info(userInfo);
                 try {
                     JSONObject info = JSON.parseObject(userInfo);
@@ -273,7 +273,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Result releaseProductNoAu(String name, int type,String time, MultipartFile file, String token,
-                                  String city, String reference, int age) {
+                                  String prov,String city, String reference, int age) {
 
         Result result;
         String str = stringRedisTemplate.opsForValue().get(token);
@@ -291,6 +291,7 @@ public class UserServiceImpl implements UserService {
                         author.setCity(user.getCity());
                         author.setDistrict(user.getDistrict());
                         author.setState(1);
+                        author.setProvince(prov);
                         author.setName(user.getName());
                         author.setCreateTime(date);
                         author.setUpdateTime(date);
@@ -448,9 +449,12 @@ public class UserServiceImpl implements UserService {
         String str = stringRedisTemplate.opsForValue().get(token);
         if (null != str) {
             Long id = Long.parseLong(redisService.getUserId(str));
+           logger.info("关注的用户ID："+id);
             logger.info("id:"+id);
             User user = userDao.findUserById(userId);
+
             if (user == null) {
+                logger.info("关注失败，user is null");
                 return Result.failure(ResultCode.FAILURE);
             }
             redisTemplate.opsForSet().add("attention_" + id, userId);
@@ -650,19 +654,19 @@ public class UserServiceImpl implements UserService {
             String notityXml = sb.toString();
             String resXml = "";
             System.out.println("接收到的报文：" + notityXml);
-            Map map = PayUtil.doXMLParse(notityXml);
-            String returnCode = (String) map.get("return_code");
+            Map<String,String> map = WxPayUtil.xmlToMap(notityXml);
+            String returnCode = map.get("return_code");
             if("SUCCESS".equals(returnCode)){
                 //验证签名是否正确
-                Map<String, String> validParams = PayUtil.paraFilter(map);  //回调验签时需要去除sign和空值参数
-                String validStr = PayUtil.createLinkString(validParams);//把数组所有元素，按照“参数=参数值”的模式用“&”字符拼接成字符串
-                String sign = PayUtil.sign(validStr, key, "utf-8").toUpperCase();//拼装生成服务器端验证的签名
+                //Map<String, String> validParams = PayUtil.paraFilter(map);  //回调验签时需要去除sign和空值参数
+                //String validStr = PayUtil.createLinkString(validParams);//把数组所有元素，按照“参数=参数值”的模式用“&”字符拼接成字符串
+                String sign = WxPayUtil.getSign(map,key);
                 // 因为微信回调会有八次之多,所以当第一次回调成功了,那么我们就不再执行逻辑了
 
                 //根据微信官网的介绍，此处不仅对回调的参数进行验签，还需要对返回的金额与系统订单的金额进行比对等
                 if(sign.equals(map.get("sign"))){
                     /**此处添加自己的业务逻辑代码start**/
-                    String orderNum = validParams.get("out_trade_no");
+                    String orderNum = map.get("out_trade_no");
                     ASongOrder order = orderDao.findASongOrderByOrderNum(orderNum);
                     if(order!=null){
                         if(order.getState()==0){
@@ -730,7 +734,7 @@ public class UserServiceImpl implements UserService {
                             map.put("play", product.getPlayNum());
                             map.put("download", product.getDownNum());
                             map.put("shareNum",product.getShareNum());
-                            ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+product.getId()+"-%", user.getId(), 1);
+                            ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+product.getId()+"-%", userId, 1);
                             if (order != null) {
                                 map.put("state", 1);
                             } else {
@@ -837,7 +841,12 @@ public class UserServiceImpl implements UserService {
                   map.put("play", product.getPlayNum());
                   map.put("download", product.getDownNum());
                   map.put("shareNum",product.getShareNum());
-                  map.put("state", 1);
+                  ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+product.getId()+"-%", userId, 1);
+                  if (order != null) {
+                      map.put("state", 1);
+                  } else {
+                      map.put("state", 0);
+                  }
                   List<ASongOrder> orders1 = orderDao.findASongOrdersByProductIdLikeAndState("%-"+product.getId()+"-%",1);
                   if(orders1==null){
                       map.put("payNum",0);

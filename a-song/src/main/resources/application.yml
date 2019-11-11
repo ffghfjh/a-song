@@ -60,8 +60,11 @@ spring:
     multipart:
       max-file-size: 10MB
 server:
-  port: 8080
+  port: 443
   address:
+  ssl:
+    key-store: 3065377_ysg.ddys.org.cn.pfx
+    key-store-password: 1g9LDx0s
 fdfs:
   soTimeout: 1500
   connectTimeout: 600

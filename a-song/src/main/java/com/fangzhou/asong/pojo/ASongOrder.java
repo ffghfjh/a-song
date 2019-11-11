@@ -85,4 +85,17 @@ public class ASongOrder implements Serializable {
         this.state = state;
     }
 
+    @Override
+    public String toString() {
+        return "ASongOrder{" +
+                "id=" + id +
+                ", userId=" + userId +
+                ", orderNum='" + orderNum + '\'' +
+                ", createTime=" + createTime +
+                ", updateTime=" + updateTime +
+                ", productId='" + productId + '\'' +
+                ", state=" + state +
+                ", money=" + money +
+                '}';
+    }
 }

@@ -17,6 +17,12 @@ public interface AuthorDao extends CrudRepository<Author,Long> {
 
     List<Author> findAuthorsByState(int state);
 
+    List<Author> findAuthorsByStateAndCityLike(int state,String city);
+
+    List<Author> findAuthorsByStateAndReferralsLike(int state,String referen);
+
+    List<Author> findAuthorsByStateAndNameLike(int state,String name);
+
 
 
 }

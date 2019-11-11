@@ -2,6 +2,7 @@ package com.fangzhou.asong.controller;
 
 import com.fangzhou.asong.service.ASongService;
 import com.fangzhou.asong.service.ProducterService;
+import com.fangzhou.asong.util.PassToken;
 import com.fangzhou.asong.util.Result;
 import com.fangzhou.asong.util.ResultCode;
 import com.fangzhou.asong.util.UserLoginToken;
@@ -39,12 +40,12 @@ public class ASongController {
     }
 
     @GetMapping("/download")
-    @UserLoginToken
-    public Result download(Long proId,HttpServletResponse response,HttpServletRequest request){
-        if(proId==null){
-            return Result.failure(ResultCode.PARAM_IS_BLANK);
+    @PassToken
+    public Result download(Long proId,String token,HttpServletResponse response){
+        if(proId!=null){
+           return aSongService.downLoadProduct(proId,token,response);
         }
-        return aSongService.downLoadProduct(proId,request.getHeader("token"),response);
+        return Result.failure(ResultCode.FAILURE);
     }
 
     @GetMapping("/getAuthors")
@@ -57,6 +58,15 @@ public class ASongController {
     public Result getAdvertising(){
         logger.info("getAdvertising");
         return aSongService.getAdvertising();
+    }
+
+    @GetMapping("/searchProduct")
+    @UserLoginToken
+    public Result searchProduct(String str,HttpServletRequest request){
+        if(str==null){
+            return Result.failure(ResultCode.PARAM_IS_BLANK);
+        }
+        return producterService.searchProduct(str,request.getHeader("token"));
     }
 
 }

@@ -1,21 +1,13 @@
 package com.fangzhou.asong.service.impl;
 
-import com.alibaba.fastjson.JSONObject;
 import com.fangzhou.asong.bean.OrderInfo;
-import com.fangzhou.asong.bean.OrderReturnInfo;
-import com.fangzhou.asong.bean.SignInfo;
 import com.fangzhou.asong.dao.*;
 import com.fangzhou.asong.pojo.*;
 import com.fangzhou.asong.service.ASongService;
 import com.fangzhou.asong.service.FileService;
 import com.fangzhou.asong.service.RedisService;
 import com.fangzhou.asong.util.*;
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.io.xml.DomDriver;
-import com.thoughtworks.xstream.io.xml.XmlFriendlyNameCoder;
-import org.apache.http.HttpRequest;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.HttpPost;
+import net.bytebuddy.utility.RandomString;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -169,7 +161,6 @@ public class ASongServiceImpl implements ASongService {
 
     @Override
     public Result downLoadProduct(Long proId, String token, HttpServletResponse response) {
-        Result result;
         String str = stringRedisTemplate.opsForValue().get(token);
         if (str != null && !str.equals("")) {
             Long userId = Long.parseLong(redisService.getUserId(str));
@@ -177,38 +168,34 @@ public class ASongServiceImpl implements ASongService {
             ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+proId+"-%", userId, 1);
             if (order != null) {
                 Product product = productDao.findProductById(proId);
-                byte[] bytes = fileService.downloadFile(product.getProUrl());
-                // 这里只是为了整合fastdfs，所以写死了文件格式。需要在上传的时候保存文件名。下载的时候使用对应的格式
-                try {
-                    response.setHeader("Content-disposition", "attachment;filename=" + URLEncoder.encode("sb.jpg", "UTF-8"));
-                } catch (UnsupportedEncodingException e) {
-                    e.printStackTrace();
-                }
-                response.setCharacterEncoding("UTF-8");
-                ServletOutputStream outputStream = null;
-                try {
-                    outputStream = response.getOutputStream();
-                    outputStream.write(bytes);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    try {
-                        outputStream.flush();
-                        outputStream.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
+//                byte[] bytes = fileService.downloadFile(product.getProUrl());
+//                // 这里只是为了整合fastdfs，所以写死了文件格式。需要在上传的时候保存文件名。下载的时候使用对应的格式
+//                try {
+//                    response.setHeader("Content-disposition", "attachment;filename=" + URLEncoder.encode(new RandomString().nextString()+".mp3", "UTF-8"));
+//                } catch (UnsupportedEncodingException e) {
+//                    e.printStackTrace();
+//                }
+//                response.setCharacterEncoding("UTF-8");
+//                ServletOutputStream outputStream = null;
+//                try {
+//                    outputStream = response.getOutputStream();
+//                    outputStream.write(bytes);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                } finally {
+//                    try {
+//                        outputStream.flush();
+//                        outputStream.close();
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
                 //添加下载次数
                 product.setDownNum(product.getDownNum()+1);
                 return Result.success();
-            } else {
-                result = Result.failure(ResultCode.FAILURE);
-                result.setMsg("没有下载权限");
-                return result;
             }
         }
-        return null;
+        return Result.failure(ResultCode.FAILURE);
     }
 
     @Override
@@ -265,13 +252,15 @@ public class ASongServiceImpl implements ASongService {
         String nonceStr = RandomStringGenerator.getRandomStringByLength(32);
         logger.info(nonceStr);
         order.setNonce_str(nonceStr);
-        order.setBody("一首歌公益");
+        order.setBody("asong");
         order.setOut_trade_no(outTradeNo);
-        int money = (int) (price*100)*proIds.size();
+        //int money = (int) (price*100)*proIds.size();
+        int money = 1;
         order.setTotal_fee(money);
         order.setSpbill_create_ip(ip);
         order.setTrade_type("JSAPI");
         order.setOpenid(user.getOpenid());
+        logger.info("用户下单openId:"+user.getOpenid());
         //生成签名
         try {
             Map<String,String> map = new HashMap<>();
@@ -285,34 +274,31 @@ public class ASongServiceImpl implements ASongService {
             map.put("notify_url",order.getNonce_str());
             map.put("trade_type",order.getTrade_type());
             map.put("openid",user.getOpenid());
-
-            String sign = Signature.getSign(order,key);
+            String sign = WxPayUtil.getSign(map,key);
+            map.put("sign",sign);
             logger.info("签名："+sign);
             order.setSign(sign);
-            String result1 = WePayHttpRequest.sendPost(payUrl,order);
-
-            XStream xStream = new XStream();
-            XStream.setupDefaultSecurity(xStream);
-            xStream.alias("xml", OrderReturnInfo.class);
-            logger.info("下单返回参数"+result1);
-            OrderReturnInfo returnInfo = (OrderReturnInfo)xStream.fromXML(result1);
-            logger.info("解析完毕："+returnInfo.toString());
+            String result1 = WxPayUtil.sendPost(map,payUrl,1000000,100000);
+            logger.info("下单返回参数"+result1);logger.info("下单返回参数"+result1);
+            Map<String,String> resultMap = WxPayUtil.xmlToMap(result1);
+            logger.info("解析完毕："+resultMap.toString());
+            System.out.println(resultMap.get("result_code")+","+resultMap.get("return_code"));
             // 二次签名
-            if ("SUCCESS".equals(returnInfo.getReturn_code()) && returnInfo.getReturn_code().equals(returnInfo.getResult_code())) {
-                SignInfo signInfo = new SignInfo();
-                signInfo.setAppId(appId);
+            if ("SUCCESS".equals(resultMap.get("result_code")) && resultMap.get("return_code").equals(resultMap.get("result_code"))) {
+                Map<String,String> map1 = new HashMap<>();
+                map1.put("appId",appId);
                 long time = System.currentTimeMillis()/1000;
-                signInfo.setTimeStamp(String.valueOf(time));
-                signInfo.setNonceStr(RandomStringGenerator.getRandomStringByLength(32));
-                signInfo.setRepay_id("prepay_id="+returnInfo.getPrepay_id());
-                signInfo.setSignType("MD5");
+                map1.put("timeStamp",String.valueOf(time));
+                map1.put("nonceStr",RandomStringGenerator.getRandomStringByLength(32));
+                map1.put("package","prepay_id="+resultMap.get("prepay_id"));
+                map1.put("signType","MD5");
                 //生成签名
-                String sign1 = Signature.getSign(signInfo,key);
+                String sign1 = WxPayUtil.getSign(map1,key);
                 Map payInfo = new HashMap();
-                payInfo.put("timeStamp", signInfo.getTimeStamp());
-                payInfo.put("nonceStr", signInfo.getNonceStr());
-                payInfo.put("package", signInfo.getRepay_id());
-                payInfo.put("signType", signInfo.getSignType());
+                payInfo.put("timeStamp", map1.get("timeStamp"));
+                payInfo.put("nonceStr", map1.get("nonceStr"));
+                payInfo.put("package", map1.get("package"));
+                payInfo.put("signType", map1.get("signType"));
                 payInfo.put("paySign", sign1);
 
                 //统一下单业务
@@ -353,7 +339,12 @@ public class ASongServiceImpl implements ASongService {
     }
 
     @Override
-    public Result getUsersProduct(Long authorId) {
+    public Result getUsersProduct(Long authorId,String token) {
+        String str = stringRedisTemplate.opsForValue().get(token);
+        if(str==null){
+            return Result.failure(ResultCode.FAILURE);
+        }
+        Long userId = Long.parseLong(redisService.getUserId(str));
             List<Object> list = new ArrayList<>();
             Author author = authorDao.findAuthorById(authorId);
             //查询作者
@@ -386,7 +377,7 @@ public class ASongServiceImpl implements ASongService {
                                 map.put("good", true);
                             }
                         }
-                        ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+product.getId()+"-%", user.getId(), 1);
+                        ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+product.getId()+"-%", userId, 1);
                         if (order != null) {
                             map.put("state", 1);
                         } else {

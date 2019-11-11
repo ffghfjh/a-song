@@ -63,5 +63,5 @@ public interface ASongService {
      * 获取用户的歌单列表
      * @return
      */
-    Result getUsersProduct(Long authorId);
+    Result getUsersProduct(Long authorId,String token);
 }

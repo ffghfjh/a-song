@@ -74,8 +74,8 @@ public class UserController {
 
     @GetMapping("/getUserProducts")
     @UserLoginToken
-    public Result getMyProducts(Long authorId){
-        return aSongService.getUsersProduct(authorId);
+    public Result getMyProducts(Long authorId,HttpServletRequest request){
+        return aSongService.getUsersProduct(authorId,request.getHeader("token"));
     }
 
     @GetMapping("/getMyProducts")
@@ -93,7 +93,7 @@ public class UserController {
             logger.info("author is null");
             return Result.success();
         }
-        return aSongService.getUsersProduct(author.getId());
+        return aSongService.getUsersProduct(author.getId(),token);
     }
     @GetMapping("/getProductById")
     @UserLoginToken
@@ -138,7 +138,7 @@ public class UserController {
 
     @PostMapping("/releaseProductNoAuthor")
     @PassToken
-    public Result releaseProductNoAuthor(String name,Integer typeId,String time,@RequestParam("file") MultipartFile file,String token,String city,String reference,int age){
+    public Result releaseProductNoAuthor(String name,Integer typeId,String time,@RequestParam("file") MultipartFile file,String token,String prov,String city,String reference,int age){
         logger.info("进入发布作品1");
         if(name==null||typeId==null||time==null){
             return Result.failure(ResultCode.PARAM_IS_BLANK);
@@ -151,7 +151,7 @@ public class UserController {
 
                 //音频判断
                 if(fileService.getFileType(file)==2){
-                    return userService.releaseProductNoAu(name,typeId,time,file,token,city,reference,age);
+                    return userService.releaseProductNoAu(name,typeId,time,file,token,prov,city,reference,age);
                 }
                 Result result= Result.failure(ResultCode.FAILURE);
                 result.setMsg("文件格式不正确");
