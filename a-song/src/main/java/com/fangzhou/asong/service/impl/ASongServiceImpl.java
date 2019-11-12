@@ -242,8 +242,20 @@ public class ASongServiceImpl implements ASongService {
             result.setMsg("token不存在");
             return result;
         }
+
         Long userId = Long.parseLong(redisService.getUserId(str));
         User user = userDao.findUserById(userId);
+
+        for(int i =0;i<proIds.size();i++){
+            //查询是否已经购买过
+            ASongOrder order2 = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+proIds.get(i)+"-%",userId,1);
+            if(order2!=null){
+                logger.info("购买过Id为"+proIds.get(i)+"的商品");
+                proIds.remove(i);
+            }else{
+                logger.info("未购买过Id为"+proIds.get(i)+"的商品");
+            }
+        }
         //商户订单号
         String outTradeNo = getOrderNo();
         OrderInfo order = new OrderInfo();
@@ -257,6 +269,7 @@ public class ASongServiceImpl implements ASongService {
         //int money = (int) (price*100)*proIds.size();
         int money = 1;
         order.setTotal_fee(money);
+        order.setNotify_url(noticeUrl);
         order.setSpbill_create_ip(ip);
         order.setTrade_type("JSAPI");
         order.setOpenid(user.getOpenid());
@@ -271,7 +284,7 @@ public class ASongServiceImpl implements ASongService {
             map.put("out_trade_no",order.getOut_trade_no());
             map.put("total_fee",order.getTotal_fee()+"");
             map.put("spbill_create_ip",order.getSpbill_create_ip());
-            map.put("notify_url",order.getNonce_str());
+            map.put("notify_url",order.getNotify_url());
             map.put("trade_type",order.getTrade_type());
             map.put("openid",user.getOpenid());
             String sign = WxPayUtil.getSign(map,key);
@@ -301,21 +314,25 @@ public class ASongServiceImpl implements ASongService {
                 payInfo.put("signType", map1.get("signType"));
                 payInfo.put("paySign", sign1);
 
-                //统一下单业务
-                ASongOrder order1 = new ASongOrder();
-                Date date = new Date();
-                order1.setUserId(userId);
-                order1.setMoney(money);
-                order1.setOrderNum(outTradeNo);
+
                 String productId = "-";
-                for(Long proId : proIds){
-                    productId=productId+proId+"-";
+                if(proIds.size()>0){
+                    for(Long proId : proIds){
+                        logger.info("订单产品id:"+proId);
+                        productId=productId+proId+"-";
+                    }
+                    //统一下单业务
+                    ASongOrder order1 = new ASongOrder();
+                    Date date = new Date();
+                    order1.setUserId(userId);
+                    order1.setMoney(money);
+                    order1.setOrderNum(outTradeNo);
+                    order1.setProductId(productId);
+                    order1.setState(0);
+                    order1.setCreateTime(date);
+                    order1.setUpdateTime(date);
+                    orderDao.save(order1);
                 }
-                order1.setProductId(productId);
-                order1.setState(0);
-                order1.setCreateTime(date);
-                order1.setUpdateTime(date);
-                orderDao.save(order1);
                 return Result.success(payInfo);
             }
 
@@ -362,11 +379,12 @@ public class ASongServiceImpl implements ASongService {
                         map.put("time", product.getTime());
                         map.put("url", product.getProUrl());
                         map.put("date", product.getCreateTime());
-                        map.put("commontSize", product.getPlayNum());
+                        map.put("commontSize", product.getComNum());
                         map.put("goodNum", product.getGoodNum());
                         map.put("play", product.getPlayNum());
                         map.put("download", product.getDownNum());
                         map.put("productId", product.getId());
+                        map.put("shareNum",product.getShareNum());
                         ProGood proGood = goodDao.findProGoodByProIdAndUserId(product.getId(), user.getId());
                         if (proGood == null) {
                             map.put("good", false);

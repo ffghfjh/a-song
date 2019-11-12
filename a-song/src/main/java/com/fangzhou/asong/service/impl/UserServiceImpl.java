@@ -198,16 +198,16 @@ public class UserServiceImpl implements UserService {
         String str = stringRedisTemplate.opsForValue().get(token);
         logger.info(str);
         if (str != null) {
-            logger.info("sessionKey:"+redisService.getSessionKey(str));
-            logger.info("userId:"+redisService.getUserId(str));
+            logger.info("sessionKey:" + redisService.getSessionKey(str));
+            logger.info("userId:" + redisService.getUserId(str));
             Long userId = Long.parseLong(redisService.getUserId(str));
             User user = userDao.findUserById(userId);
             map.put("header", user.getHeader());
             map.put("name", user.getName());
-            map.put("userId",user.getId());
-            map.put("name",user.getName());
-            map.put("man",user.isMan());
-            map.put("city",user.getCity());
+            map.put("userId", user.getId());
+            map.put("name", user.getName());
+            map.put("man", user.isMan());
+            map.put("city", user.getCity());
             if (user.isAuthor()) {
                 Author author = authorDao.findAuthorByUserIdAndState(user.getId(), 1);
                 AuthorOwnProduct ownProduct = ownProducterDao.findAuthorOwnProductByAuthorId(author.getId());
@@ -272,8 +272,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Result releaseProductNoAu(String name, int type,String time, MultipartFile file, String token,
-                                  String prov,String city, String reference, int age) {
+    public Result releaseProductNoAu(String name, int type, String time, MultipartFile file, String token,
+                                     String prov, String city, String reference, int age) {
 
         Result result;
         String str = stringRedisTemplate.opsForValue().get(token);
@@ -297,18 +297,18 @@ public class UserServiceImpl implements UserService {
                         author.setUpdateTime(date);
 
                         //推荐人信息
-                        if(reference!=null){
+                        if (reference != null) {
                             author.setReferrals(reference);
-                            Referrals referrals =  referralsDao.findReferralsByName(reference);
-                            if(referrals==null){
+                            Referrals referrals = referralsDao.findReferralsByName(reference);
+                            if (referrals == null) {
                                 Referrals referrals1 = new Referrals();
                                 referrals1.setName(reference);
                                 referrals1.setNum(1);
                                 referrals1.setCreateTime(date);
                                 referrals1.setUpdateTime(date);
                                 referralsDao.save(referrals1);
-                            }else {
-                                referrals.setNum(referrals.getNum()+1);
+                            } else {
+                                referrals.setNum(referrals.getNum() + 1);
                                 referralsDao.save(referrals);
                             }
                         }
@@ -360,7 +360,7 @@ public class UserServiceImpl implements UserService {
                         logger.info("发布作品成功");
                         //redisService.addProduct(product1.getId());
                         return Result.success();
-                    }else{
+                    } else {
                         return Result.failure(ResultCode.INTERFACE_FORBID_VISIT);
                     }
                 }
@@ -374,65 +374,65 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public Result releaseProduct(String name, int type,String time, MultipartFile file, String token) {
+    public Result releaseProduct(String name, int type, String time, MultipartFile file, String token) {
         Result result;
         String str = stringRedisTemplate.opsForValue().get(token);
-        if(str==null){
+        if (str == null) {
             return Result.failure(ResultCode.FAILURE);
         }
         Long userId = Long.parseLong(redisService.getUserId(str));
         User user = userDao.findUserById(userId);
-        if(user!=null){
+        if (user != null) {
             if (user.getState() == 1) {
-               if(user.isAuthor()){
-                 Author author = authorDao.findAuthorByUserIdAndState(user.getId(),1);
-                 if(author!=null){
-                     Date date = new Date();
-                     String url = fileService.saveFile(file, file.getContentType().split("/")[1]);//作品地址
-                     Product product = new Product();
-                     product.setAuthorId(author.getId());
-                     product.setClassId(type);
-                     product.setState(Product.ONSHELF);
-                     product.setProUrl(url);
-                     product.setTitle(name);
-                     product.setTime(time);
-                     product.setCreateTime(date);
-                     product.setUpdateTime(date);
-                     product.setGoodNum(0);
-                     product.setPlayNum(0);
-                     product.setDownNum(0);
-                     product.setComNum(0);
-                     product.setRecommend(false);//默认不推荐
-                     product.setShareNum(0);
-                     Product product1 = productDao.save(product);
-                     //记录作者贡献的作品数
-                     AuthorOwnProduct ownProduct = ownProducterDao.findAuthorOwnProductByAuthorId(author.getId());
-                     if (ownProduct == null) {
-                         AuthorOwnProduct ownProduct1 = new AuthorOwnProduct();
-                         ownProduct1.setAuthorId(author.getId());
-                         ownProduct1.setNum(1);
-                         ownProduct1.setCreateTime(date);
-                         ownProduct1.setUpdateTime(date);
-                         ownProducterDao.save(ownProduct1);
-                     } else {
-                         ownProduct.setNum(ownProduct.getNum() + 1);
-                         ownProducterDao.save(ownProduct);
-                     }
-                     //添加消息到消息
-                     SongMessage message = new SongMessage();
-                     message.setType(1);//作品发布成功消息
-                     message.setUserId(user.getId());
-                     message.setCreateTime(date);
-                     message.setUpdateTime(date);
-                     message.setIsread(false);
-                     messageDao.save(message);
-                     //redisService.addProduct(product1.getId());
-                     logger.info("发布作品成功");
-                     return Result.success();
-                 }
-                 logger.error("author is null");
-                 return Result.failure(ResultCode.FAILURE);
-               }
+                if (user.isAuthor()) {
+                    Author author = authorDao.findAuthorByUserIdAndState(user.getId(), 1);
+                    if (author != null) {
+                        Date date = new Date();
+                        String url = fileService.saveFile(file, file.getContentType().split("/")[1]);//作品地址
+                        Product product = new Product();
+                        product.setAuthorId(author.getId());
+                        product.setClassId(type);
+                        product.setState(Product.ONSHELF);
+                        product.setProUrl(url);
+                        product.setTitle(name);
+                        product.setTime(time);
+                        product.setCreateTime(date);
+                        product.setUpdateTime(date);
+                        product.setGoodNum(0);
+                        product.setPlayNum(0);
+                        product.setDownNum(0);
+                        product.setComNum(0);
+                        product.setRecommend(false);//默认不推荐
+                        product.setShareNum(0);
+                        Product product1 = productDao.save(product);
+                        //记录作者贡献的作品数
+                        AuthorOwnProduct ownProduct = ownProducterDao.findAuthorOwnProductByAuthorId(author.getId());
+                        if (ownProduct == null) {
+                            AuthorOwnProduct ownProduct1 = new AuthorOwnProduct();
+                            ownProduct1.setAuthorId(author.getId());
+                            ownProduct1.setNum(1);
+                            ownProduct1.setCreateTime(date);
+                            ownProduct1.setUpdateTime(date);
+                            ownProducterDao.save(ownProduct1);
+                        } else {
+                            ownProduct.setNum(ownProduct.getNum() + 1);
+                            ownProducterDao.save(ownProduct);
+                        }
+                        //添加消息到消息
+                        SongMessage message = new SongMessage();
+                        message.setType(1);//作品发布成功消息
+                        message.setUserId(user.getId());
+                        message.setCreateTime(date);
+                        message.setUpdateTime(date);
+                        message.setIsread(false);
+                        messageDao.save(message);
+                        //redisService.addProduct(product1.getId());
+                        logger.info("发布作品成功");
+                        return Result.success();
+                    }
+                    logger.error("author is null");
+                    return Result.failure(ResultCode.FAILURE);
+                }
                 result = Result.failure(ResultCode.FAILURE);
                 result.setMsg("非作者");
                 return result;
@@ -449,8 +449,8 @@ public class UserServiceImpl implements UserService {
         String str = stringRedisTemplate.opsForValue().get(token);
         if (null != str) {
             Long id = Long.parseLong(redisService.getUserId(str));
-           logger.info("关注的用户ID："+id);
-            logger.info("id:"+id);
+            logger.info("关注的用户ID：" + id);
+            logger.info("id:" + id);
             User user = userDao.findUserById(userId);
 
             if (user == null) {
@@ -458,10 +458,10 @@ public class UserServiceImpl implements UserService {
                 return Result.failure(ResultCode.FAILURE);
             }
             redisTemplate.opsForSet().add("attention_" + id, userId);
-            Notice notice = noticeDao.findNoticeByFormUserIdAndToUserId(id,userId);
-            if(notice==null){
+            Notice notice = noticeDao.findNoticeByFormUserIdAndToUserId(id, userId);
+            if (notice == null) {
                 notice = new Notice();
-                logger.info("id:"+id);
+                logger.info("id:" + id);
                 Date date = new Date();
                 notice.setFormUserId(id);
                 notice.setToUserId(userId);
@@ -484,7 +484,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Result notNoticeUser(String token, Long userId) {
-        logger.info("token: "+token);
+        logger.info("token: " + token);
         String str = stringRedisTemplate.opsForValue().get(token);
         if (null != str) {
             Long id = Long.parseLong(redisService.getUserId(str));
@@ -493,7 +493,7 @@ public class UserServiceImpl implements UserService {
                 return Result.failure(ResultCode.FAILURE);
             }
             redisTemplate.opsForSet().remove("attention_" + id, userId);
-            noticeDao.removeByFormUserIdAndToUserId(id,userId);
+            noticeDao.removeByFormUserIdAndToUserId(id, userId);
             return Result.success();
         }
         return Result.failure(ResultCode.FAILURE);
@@ -520,14 +520,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Result getMyData(String token) {
-        Map<String,Integer> map = new HashMap<>();
+        Map<String, Integer> map = new HashMap<>();
         int comNum = 0;
         int playNum = 0;
         int likeNum = 0;
         int noticeNum = 0;
         String str = stringRedisTemplate.opsForValue().get(token);
         if (str == null) {
-          return Result.failure(ResultCode.FAILURE);
+            return Result.failure(ResultCode.FAILURE);
         }
         Long userId = Long.parseLong(redisService.getUserId(str));
         List<ProCommont> commonts = commontDao.findProCommontsByUserId(userId);
@@ -539,23 +539,23 @@ public class UserServiceImpl implements UserService {
             likeNum = goods.size();
         }
         List<Play> plays = playDao.findPlaysByUserId(userId);
-        if(plays!=null){
+        if (plays != null) {
             playNum = plays.size();
         }
-        map.put("comNum",comNum);
-        map.put("playNum",playNum);
-        map.put("likeNum",likeNum);
-        map.put("noticeNum",noticeNum);
+        map.put("comNum", comNum);
+        map.put("playNum", playNum);
+        map.put("likeNum", likeNum);
+        map.put("noticeNum", noticeNum);
         return Result.success(map);
     }
 
     @Override
     public Result getMyDataByDate(String start, String end, String token) {
         String str = stringRedisTemplate.opsForValue().get(token);
-        if(str==null){
+        if (str == null) {
             return Result.failure(ResultCode.FAILURE);
         }
-        Map<String,Object> allMap = new HashMap<>();
+        Map<String, Object> allMap = new HashMap<>();
         List<Object> timeList = new ArrayList<>();
         List<Object> playList = new ArrayList<>();
         List<Object> comList = new ArrayList<>();
@@ -564,59 +564,59 @@ public class UserServiceImpl implements UserService {
 
         List<Object> list = new ArrayList<>();
         Long userId = Long.parseLong(redisService.getUserId(str));
-        List<String> dates = getDays(start,end);
-        for(String date : dates){
-            Map<String,Object> map = new HashMap<>();
+        List<String> dates = getDays(start, end);
+        for (String date : dates) {
+
+            Map<String, Object> map = new HashMap<>();
             DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-                int comNum = 0;
-                int playNum = 0;
-                int likeNum = 0;
-                int noticeNum = 0;
-            Date date1 = null;
-            try {
-                date1 = dateFormat.parse(date);
-            } catch (ParseException e) {
-                e.printStackTrace();
+            int comNum = 0;
+            int playNum = 0;
+            int likeNum = 0;
+            int noticeNum = 0;
+
+            String year = date.split("-")[0];
+            String month = date.split("-")[1];
+            String day = date.split("-")[2];
+            List<Play> plays = playDao.findPlaysByDate(userId, year, month, day);
+            if (plays != null) {
+                playNum = plays.size();
             }
-            List<Play> plays = playDao.findPlaysByUserIdAndCreateTime(userId,date1);
-                if(plays!=null){
-                    playNum = plays.size();
-                }
-                List<ProGood> goods = proGoodDao.findProGoodsByUserIdAndStateAndCreateTime(userId,1,date1);
-                if(goods!=null){
-                    likeNum = goods.size();
-                }
-                List<ProCommont> commonts = commontDao.findProCommontsByUserIdAndCreateTime(userId,date1);
-                if(commonts!=null){
-                    comNum = commonts.size();
-                }
-                List<Notice> notices = noticeDao.findNoticesByFormUserIdAndCreateTime(userId,date1);
-                if(notices!=null){
-                    noticeNum = notices.size();
-                }
-                playList.add(playNum);
-                noticeList.add(noticeNum);
-                comList.add(comNum);
-                likeList.add(likeNum);
-                timeList.add(date);;
+            List<ProGood> goods = proGoodDao.findGoodsByDate(userId, 1, year, month, day);
+            if (goods != null) {
+                likeNum = goods.size();
+            }
+            List<ProCommont> commonts = commontDao.getCommontsByData(userId, year, month, day);
+            if (commonts != null) {
+                comNum = commonts.size();
+            }
+            List<Notice> notices = noticeDao.findNoticeByDate(userId, year, month, day);
+            if (notices != null) {
+                noticeNum = notices.size();
+            }
+            playList.add(playNum);
+            noticeList.add(noticeNum);
+            comList.add(comNum);
+            likeList.add(likeNum);
+            timeList.add(date);
+            ;
         }
-        allMap.put("date",timeList);
-        allMap.put("play",playList);
-        allMap.put("comm",comList);
-        allMap.put("like",likeList);
-        allMap.put("notice",noticeList);
-       return Result.success(allMap);
+        allMap.put("date", timeList);
+        allMap.put("play", playList);
+        allMap.put("comm", comList);
+        allMap.put("like", likeList);
+        allMap.put("notice", noticeList);
+        return Result.success(allMap);
     }
 
     @Override
     public Result getIsAuthor(String token) {
         String str = stringRedisTemplate.opsForValue().get(token);
-        if(str==null){
+        if (str == null) {
             return Result.failure(ResultCode.FAILURE);
         }
         Long userId = Long.parseLong(redisService.getUserId(str));
         User user = userDao.findUserById(userId);
-        if(user.isAuthor()){
+        if (user.isAuthor()) {
             return Result.success(true);
         }
         return Result.success(false);
@@ -625,13 +625,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public Result getMessages(String token) {
         String str = stringRedisTemplate.opsForValue().get(token);
-        if(str==null){
+        if (str == null) {
             return Result.failure(ResultCode.FAILURE);
         }
         Long userId = Long.parseLong(redisService.getUserId(str));
-        List<SongMessage> messages = messageDao.findMessagesByUserIdAndAndIsread(userId,false);
-        if(messages!=null){
-            for(SongMessage message : messages){
+        List<SongMessage> messages = messageDao.findMessagesByUserIdAndAndIsread(userId, false);
+        if (messages != null) {
+            for (SongMessage message : messages) {
                 message.setIsread(true);
                 messageDao.save(message);
             }
@@ -642,11 +642,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void payResult(HttpServletRequest request, HttpServletResponse response) {
-        try{
-            BufferedReader br = new BufferedReader(new InputStreamReader((ServletInputStream)request.getInputStream()));
+        try {
+            BufferedReader br = new BufferedReader(new InputStreamReader((ServletInputStream) request.getInputStream()));
             String line = null;
             StringBuilder sb = new StringBuilder();
-            while((line = br.readLine()) != null){
+            while ((line = br.readLine()) != null) {
                 sb.append(line);
             }
             br.close();
@@ -654,22 +654,22 @@ public class UserServiceImpl implements UserService {
             String notityXml = sb.toString();
             String resXml = "";
             System.out.println("接收到的报文：" + notityXml);
-            Map<String,String> map = WxPayUtil.xmlToMap(notityXml);
+            Map<String, String> map = WxPayUtil.xmlToMap(notityXml);
             String returnCode = map.get("return_code");
-            if("SUCCESS".equals(returnCode)){
+            if ("SUCCESS".equals(returnCode)) {
                 //验证签名是否正确
                 //Map<String, String> validParams = PayUtil.paraFilter(map);  //回调验签时需要去除sign和空值参数
                 //String validStr = PayUtil.createLinkString(validParams);//把数组所有元素，按照“参数=参数值”的模式用“&”字符拼接成字符串
-                String sign = WxPayUtil.getSign(map,key);
+                String sign = WxPayUtil.getSign(map, key);
                 // 因为微信回调会有八次之多,所以当第一次回调成功了,那么我们就不再执行逻辑了
 
                 //根据微信官网的介绍，此处不仅对回调的参数进行验签，还需要对返回的金额与系统订单的金额进行比对等
-                if(sign.equals(map.get("sign"))){
+                if (sign.equals(map.get("sign"))) {
                     /**此处添加自己的业务逻辑代码start**/
                     String orderNum = map.get("out_trade_no");
                     ASongOrder order = orderDao.findASongOrderByOrderNum(orderNum);
-                    if(order!=null){
-                        if(order.getState()==0){
+                    if (order != null) {
+                        if (order.getState() == 0) {
                             order.setState(1);
                             orderDao.save(order);
                         }
@@ -700,51 +700,51 @@ public class UserServiceImpl implements UserService {
     @Override
     public Result getMyNoticeProduct(String token) {
         String str = stringRedisTemplate.opsForValue().get(token);
-        if(str==null){
+        if (str == null) {
             return Result.failure(ResultCode.FAILURE);
         }
         Long userId = Long.parseLong(redisService.getUserId(str));
         List<Notice> notices = noticeDao.findNoticesByFormUserId(userId);
-        if(notices==null){
+        if (notices == null) {
             return Result.success();
         }
         List<Object> list = new ArrayList<>();
-        for(Notice notice : notices){
+        for (Notice notice : notices) {
             Long toUserId = notice.getToUserId();
             User user = userDao.findUserById(toUserId);
-            if(user!=null){
-                if(user.isAuthor()){
-                    Author author = authorDao.findAuthorByUserIdAndState(toUserId,1);
-                    if(author!=null){
+            if (user != null) {
+                if (user.isAuthor()) {
+                    Author author = authorDao.findAuthorByUserIdAndState(toUserId, 1);
+                    if (author != null) {
                         List<Product> products = productDao.findProductsByAuthorId(author.getId());
-                        for(Product product : products){
+                        for (Product product : products) {
                             Map<String, Object> map = new HashMap<>();
-                            map.put("select",false);
+                            map.put("select", false);
                             map.put("authorId", product.getAuthorId());
                             map.put("userId", user.getId());
-                            map.put("productId",product.getId());
+                            map.put("productId", product.getId());
                             map.put("name", user.getName());
                             map.put("header", user.getHeader());
                             map.put("title", product.getTitle());
                             map.put("time", product.getTime());
                             map.put("url", product.getProUrl());
                             map.put("date", product.getCreateTime());
-                            map.put("commontSize", product.getPlayNum());
+                            map.put("commontSize", product.getComNum());
                             map.put("good", product.getGoodNum());
                             map.put("play", product.getPlayNum());
                             map.put("download", product.getDownNum());
-                            map.put("shareNum",product.getShareNum());
-                            ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+product.getId()+"-%", userId, 1);
+                            map.put("shareNum", product.getShareNum());
+                            ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-" + product.getId() + "-%", userId, 1);
                             if (order != null) {
                                 map.put("state", 1);
                             } else {
                                 map.put("state", 0);
                             }
-                            List<ASongOrder> orders = orderDao.findASongOrdersByProductIdLikeAndState("%-"+product.getId()+"-%",1);
-                            if(orders==null){
-                                map.put("payNum",0);
-                            }else {
-                                map.put("payNum",orders.size());
+                            List<ASongOrder> orders = orderDao.findASongOrdersByProductIdLikeAndState("%-" + product.getId() + "-%", 1);
+                            if (orders == null) {
+                                map.put("payNum", 0);
+                            } else {
+                                map.put("payNum", orders.size());
                             }
                             list.add(map);
                         }
@@ -759,102 +759,107 @@ public class UserServiceImpl implements UserService {
     @Override
     public Result getMyBuyProduct(String token) {
         String str = stringRedisTemplate.opsForValue().get(token);
-        if(str==null){
+        if (str == null) {
             return Result.failure(ResultCode.FAILURE);
         }
         Long userId = Long.parseLong(redisService.getUserId(str));
-        List<ASongOrder> orders = orderDao.findASongOrdersByUserIdAndState(userId,1);
-        List<Object> list = new ArrayList<>();
-        if(orders!=null){
-            for(ASongOrder order : orders){
+        if(userId==null){
+            logger.info("userId为空");
+            return Result.failure(ResultCode.FAILURE);
+        }
+        List<ASongOrder> orders = orderDao.findASongOrdersByUserIdAndState(userId, 1);
+
+        if (orders != null) {
+            List<Object> list = new ArrayList<>();
+            for (ASongOrder order : orders) {
                 String proIds = order.getProductId();
                 String[] ids = proIds.split("-");
-                if(ids!=null){
-                    for(String id : ids){
-                        if(!id.equals("")){
+                if (ids != null) {
+                    for (String id : ids) {
+                        if (!id.equals("")) {
                             Product product = productDao.findProductById(Long.parseLong(id));
-                            Author author = authorDao.findAuthorById(product.getAuthorId());
-                            User user = userDao.findUserById(author.getUserId());
-                            if(product!=null){
+                            if (product != null) {
+                                Author author = authorDao.findAuthorById(product.getAuthorId());
+                                User user = userDao.findUserById(author.getUserId());
                                 Map<String, Object> map = new HashMap<>();
-                                map.put("select",false);
+                                map.put("select", false);
                                 map.put("authorId", product.getAuthorId());
                                 map.put("userId", user.getId());
-                                map.put("productId",product.getId());
-                                map.put("uname", user.getName());
+                                map.put("productId", product.getId());
+                                map.put("name", user.getName());
                                 map.put("header", user.getHeader());
                                 map.put("title", product.getTitle());
                                 map.put("time", product.getTime());
                                 map.put("url", product.getProUrl());
                                 map.put("date", product.getCreateTime());
-                                map.put("commontSize", product.getPlayNum());
+                                map.put("commontSize", product.getComNum());
                                 map.put("good", product.getGoodNum());
                                 map.put("play", product.getPlayNum());
                                 map.put("download", product.getDownNum());
-                                map.put("shareNum",product.getShareNum());
+                                map.put("shareNum", product.getShareNum());
                                 map.put("state", 1);
-                                List<ASongOrder> orders1 = orderDao.findASongOrdersByProductIdLikeAndState("%-"+product.getId()+"-%",1);
-                                if(orders1==null){
-                                    map.put("payNum",0);
-                                }else {
-                                    map.put("payNum",orders.size());
+                                List<ASongOrder> orders1 = orderDao.findASongOrdersByProductIdLikeAndState("%-" + product.getId() + "-%", 1);
+                                if (orders1 == null) {
+                                    map.put("payNum", 0);
+                                } else {
+                                    map.put("payNum", orders1.size());
                                 }
-                                list.add(list);
+                                list.add(map);
                             }
                         }
                     }
                 }
-
+                return Result.success(list);
             }
         }
-        return Result.success(list);
+        return Result.success();
     }
 
     @Override
     public Result getMyPlayProduct(String token) {
         String str = stringRedisTemplate.opsForValue().get(token);
-        if(str==null){
+        if (str == null) {
             return Result.failure(ResultCode.FAILURE);
         }
         Long userId = Long.parseLong(redisService.getUserId(str));
         List<Play> plays = playDao.findPlaysByUserId(userId);
-        if(plays!=null){
+        if (plays != null) {
             List<Object> list = new ArrayList<>();
-            for(Play play : plays){
-              Product product = productDao.findProductById(play.getProId());
-              if(product!=null){
-                  Author author = authorDao.findAuthorById(product.getAuthorId());
-                  User user = userDao.findUserById(author.getUserId());
-                  Map<String, Object> map = new HashMap<>();
-                  map.put("select",false);
-                  map.put("authorId", product.getAuthorId());
-                  map.put("userId", user.getId());
-                  map.put("productId",product.getId());
-                  map.put("uname", user.getName());
-                  map.put("header", user.getHeader());
-                  map.put("title", product.getTitle());
-                  map.put("time", product.getTime());
-                  map.put("url", product.getProUrl());
-                  map.put("date", product.getCreateTime());
-                  map.put("commontSize", product.getPlayNum());
-                  map.put("good", product.getGoodNum());
-                  map.put("play", product.getPlayNum());
-                  map.put("download", product.getDownNum());
-                  map.put("shareNum",product.getShareNum());
-                  ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-"+product.getId()+"-%", userId, 1);
-                  if (order != null) {
-                      map.put("state", 1);
-                  } else {
-                      map.put("state", 0);
-                  }
-                  List<ASongOrder> orders1 = orderDao.findASongOrdersByProductIdLikeAndState("%-"+product.getId()+"-%",1);
-                  if(orders1==null){
-                      map.put("payNum",0);
-                  }else {
-                      map.put("payNum",orders1.size());
-                  }
-                  list.add(map);
-              }
+            for (Play play : plays) {
+                Product product = productDao.findProductById(play.getProId());
+                if (product != null) {
+                    Author author = authorDao.findAuthorById(product.getAuthorId());
+                    User user = userDao.findUserById(author.getUserId());
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("select", false);
+                    map.put("authorId", product.getAuthorId());
+                    map.put("userId", user.getId());
+                    map.put("productId", product.getId());
+                    map.put("name", user.getName());
+                    map.put("header", user.getHeader());
+                    map.put("title", product.getTitle());
+                    map.put("time", product.getTime());
+                    map.put("url", product.getProUrl());
+                    map.put("date", product.getCreateTime());
+                    map.put("commontSize", product.getComNum());
+                    map.put("good", product.getGoodNum());
+                    map.put("play", product.getPlayNum());
+                    map.put("download", product.getDownNum());
+                    map.put("shareNum", product.getShareNum());
+                    ASongOrder order = orderDao.findASongOrderByProductIdLikeAndUserIdAndState("%-" + product.getId() + "-%", userId, 1);
+                    if (order != null) {
+                        map.put("state", 1);
+                    } else {
+                        map.put("state", 0);
+                    }
+                    List<ASongOrder> orders1 = orderDao.findASongOrdersByProductIdLikeAndState("%-" + product.getId() + "-%", 1);
+                    if (orders1 == null) {
+                        map.put("payNum", 0);
+                    } else {
+                        map.put("payNum", orders1.size());
+                    }
+                    list.add(map);
+                }
             }
             return Result.success(list);
         }
@@ -864,33 +869,33 @@ public class UserServiceImpl implements UserService {
     @Override
     public Result getMyOrderInfo(String token) {
         String str = stringRedisTemplate.opsForValue().get(token);
-        if(null == str){
+        if (null == str) {
             return Result.failure(ResultCode.FAILURE);
         }
         Long userId = Long.parseLong(redisService.getUserId(str));
         List<ASongOrder> orders = orderDao.findASongOrdersByUserId(userId);
         List<Object> list = new ArrayList<>();
-        if(orders==null){
+        if (orders == null) {
             return Result.success(list);
         }
         User user = userDao.findUserById(userId);
-        for(ASongOrder order : orders){
-            Map<String,Object> map = new HashMap<>();
+        for (ASongOrder order : orders) {
+            Map<String, Object> map = new HashMap<>();
             String[] strs = order.getProductId().split("-");
-            if(strs!=null&&strs.length>0){
-                for(String st : strs){
-                    if(!st.equals("")&&st!=null){
+            if (strs != null && strs.length > 0) {
+                for (String st : strs) {
+                    if (!st.equals("") && st != null) {
                         Long id = Long.parseLong(st);
                         Product product = productDao.findProductById(id);
-                        if(product!=null){
-                            map.put("productId",id);
-                            map.put("title",product.getTitle());
-                            map.put("userId",userId);
-                            map.put("name",user.getName());
-                            map.put("header",user.getHeader());
-                            map.put("money",order.getMoney());
-                            map.put("state",order.getState());
-                            map.put("time",order.getCreateTime());
+                        if (product != null) {
+                            map.put("productId", id);
+                            map.put("title", product.getTitle());
+                            map.put("userId", userId);
+                            map.put("name", user.getName());
+                            map.put("header", user.getHeader());
+                            map.put("money", order.getMoney());
+                            map.put("state", order.getState());
+                            map.put("time", order.getCreateTime());
                             list.add(map);
                         }
                     }
@@ -905,13 +910,11 @@ public class UserServiceImpl implements UserService {
     /**
      * 获取两个日期之间的所有日期
      *
-     * @param startTime
-     *            开始日期
-     * @param endTime
-     *            结束日期
+     * @param startTime 开始日期
+     * @param endTime   结束日期
      * @return
      */
-    public  List<String> getDays(String startTime, String endTime) {
+    public List<String> getDays(String startTime, String endTime) {
 
         // 返回的日期集合
         List<String> days = new ArrayList<String>();

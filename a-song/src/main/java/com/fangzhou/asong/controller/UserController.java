@@ -129,7 +129,7 @@ public class UserController {
     }
 
     @PostMapping("/payCallback")
-    @UserLoginToken
+    @PassToken
     public void payCallback(HttpServletRequest request, HttpServletResponse response){
         logger.info("微信支付回调");
          userService.payResult(request,response);

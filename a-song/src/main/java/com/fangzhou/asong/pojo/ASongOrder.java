@@ -1,14 +1,11 @@
 package com.fangzhou.asong.pojo;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import javax.persistence.*;
 import java.io.Serializable;
 import java.util.Date;
 
 @Entity
-public class ASongOrder implements Serializable {
+public class ASongOrder {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -52,7 +49,7 @@ public class ASongOrder implements Serializable {
     public void setOrderNum(String orderNum) {
         this.orderNum = orderNum;
     }
-
+    @Temporal(value = TemporalType.DATE)
     public Date getCreateTime() {
         return createTime;
     }

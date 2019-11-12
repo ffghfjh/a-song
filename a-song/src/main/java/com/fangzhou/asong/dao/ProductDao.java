@@ -12,12 +12,16 @@ import java.util.List;
 public interface ProductDao extends JpaRepository<Product,Long> {
     Product findProductById(Long proId);
     List<Product> findAllByOrderByCreateTimeAsc();
+    List<Product> findAllByOrderByCreateTimeDesc();
+    List<Product> findProductsByClassIdOrderByCreateTimeDesc(int type);
     List<Product> findProductsByAuthorId(Long authorId);
     //按点赞量升序排序
     List<Product> findAllByOrderByGoodNumAsc();
 
     //获取销量热门的作品
     List<Product> findAllByOrderByPayNumAsc();
+
+
 
     List<Product> findProductsByClassIdOrderByGoodNumAsc(int classId);
 

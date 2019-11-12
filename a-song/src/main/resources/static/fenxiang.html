@@ -5,9 +5,9 @@
     <meta name="divport" content="width=device-width,initial-scale=1 user-scalable=0"/>
     <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
     <script type="text/javascript" src="cityselect.js" charset="UTF-8"></script>
+    <script src="asong.js"></script>
 
-
-    <title>fenxiang</title>
+    <title>上传发布</title>
     <style>
         * {
             margin: 0;
@@ -146,7 +146,7 @@
     <div class="center">
         <div>
             <text class="left left2">名称</text>
-            <input type="text" placeholder="起个名字" class="left name" id="name">
+            <input type="text" placeholder="作品名字" class="left name" id="name">
         </div>
 
         <div>
@@ -178,6 +178,8 @@
         <div id="agediv">
             <text class="left left2">年龄</text>
             <select id="age" class="left name" style="width:120px;height:55px;font-size:30px" >
+               <option value="18岁以下">18岁以下</option>
+                <option value="18岁以上">18岁以上</option>
             </select>
         </div>
 
@@ -268,6 +270,7 @@
 
     //上传作品
     function shangchang() {
+        alertCTig();//弹出条款
         console.log("上传作品")
         console.log("选择:"+$("#province").val())
         var files = $("#importModel")[0].files[0];
@@ -281,22 +284,21 @@
         var audioElement = new Audio(fileurl);
         var duration;
         audioElement.addEventListener("loadedmetadata", function (_event) {
-            alert(1);
             duration = audioElement.duration;
             console.log("duration");
             console.log(duration);//单位：秒
             var time = s_to_hs(duration).substr(0,5);
             if($("#name").val()==null||$("#name").val()==""){
                 alert("请输入作品名字")
+                if($("#name").val().length>7){
+                    alert("请输入少于7个字符的作品名字")
+                }
                 return
             }
             var name = $("#name").val();
             var leixin = $("#leixin").val();
             console.log("类型id："+leixin)
-            if($("#selcity").val()==null){
-                alert("请选择城市")
-                return;
-            }
+
             var city = $("#selcity").val();
             var prov = $("#province").val();
             var tuijianren = $("#tuijianren").val();
@@ -308,7 +310,7 @@
             formData.append("time",time);
             formData.append("token",tokens);
 
-            alert("typeId");
+
             if (isshiming) {
 
                 $.ajax({
@@ -331,6 +333,10 @@
                     }
                 });
             } else {
+                if($("#selcity").val()==null){
+                    alert("请选择城市")
+                    return;
+                }
                 formData.append("prov",prov);
                 formData.append("city", city);
                 formData.append("reference", tuijianren);

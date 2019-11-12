@@ -480,7 +480,7 @@ public class ProducterServiceImpl implements ProducterService {
                 map.put("time", product.getTime());
                 map.put("url", product.getProUrl());
                 map.put("date", product.getCreateTime());
-                map.put("commontSize", product.getPlayNum());
+                map.put("commontSize", product.getComNum());
                 map.put("good", product.getGoodNum());
                 map.put("play", product.getPlayNum());
                 map.put("download", product.getDownNum());
@@ -511,7 +511,7 @@ public class ProducterServiceImpl implements ProducterService {
         }
         Long userId = Long.parseLong(redisService.getUserId(str));
         List<Object> list = new ArrayList<>();
-        List<Product> products = productDao.findAllByOrderByCreateTimeAsc();
+        List<Product> products = productDao.findAllByOrderByCreateTimeDesc();
         if(products!=null&&products.size()>0){
             if(products.size()>count){
                 for(int i=0;i<count;i++){
@@ -528,7 +528,7 @@ public class ProducterServiceImpl implements ProducterService {
                     map.put("time", product.getTime());
                     map.put("url", product.getProUrl());
                     map.put("date", product.getCreateTime());
-                    map.put("commontSize", product.getPlayNum());
+                    map.put("commontSize", product.getComNum());
                     map.put("good", product.getGoodNum());
                     map.put("play", product.getPlayNum());
                     map.put("download", product.getDownNum());
@@ -568,7 +568,7 @@ public class ProducterServiceImpl implements ProducterService {
                     map.put("productId",product.getId());
                     map.put("url", product.getProUrl());
                     map.put("date", product.getCreateTime());
-                    map.put("commontSize", product.getPlayNum());
+                    map.put("commontSize", product.getComNum());
                     map.put("good", product.getGoodNum());
                     map.put("play", product.getPlayNum());
                     map.put("download", product.getDownNum());
@@ -717,7 +717,7 @@ public class ProducterServiceImpl implements ProducterService {
         }
         Long userId = Long.parseLong(redisService.getUserId(str));
         List<Object> list = new ArrayList<>();
-        List<Product> products = productDao.findProductsByClassIdOrderByGoodNumAsc(type);
+        List<Product> products = productDao.findProductsByClassIdOrderByCreateTimeDesc(type);
         if(products!=null&&products.size()>0){
             if(products.size()>count){
                 for(int i=0;i<count;i++){
@@ -733,7 +733,7 @@ public class ProducterServiceImpl implements ProducterService {
                     map.put("time", product.getTime());
                     map.put("url", product.getProUrl());
                     map.put("date", product.getCreateTime());
-                    map.put("commontSize", product.getPlayNum());
+                    map.put("commontSize", product.getComNum());
                     map.put("good", product.getGoodNum());
                     map.put("play", product.getPlayNum());
                     map.put("download", product.getDownNum());
@@ -767,7 +767,7 @@ public class ProducterServiceImpl implements ProducterService {
                     map.put("time", product.getTime());
                     map.put("url", product.getProUrl());
                     map.put("date", product.getCreateTime());
-                    map.put("commontSize", product.getPlayNum());
+                    map.put("commontSize", product.getComNum());
                     map.put("good", product.getGoodNum());
                     map.put("play", product.getPlayNum());
                     map.put("download", product.getDownNum());
@@ -841,7 +841,7 @@ public class ProducterServiceImpl implements ProducterService {
                 map.put("userId", user.getId());
                 map.put("uname", user.getName());
                 map.put("header", user.getHeader());
-                map.put("title", all.get(i).getTime());
+                map.put("title", all.get(i).getTitle());
                 map.put("time", all.get(i).getTime());
                 map.put("date", all.get(i).getCreateTime());
                 map.put("url", all.get(i).getProUrl());
@@ -895,7 +895,7 @@ public class ProducterServiceImpl implements ProducterService {
             map.put("time", product.getTime());
             map.put("url", product.getProUrl());
             map.put("date", product.getCreateTime());
-            map.put("commontSize", product.getPlayNum());
+            map.put("commontSize", product.getComNum());
             map.put("good", product.getGoodNum());
             map.put("play", product.getPlayNum());
             map.put("download", product.getDownNum());
